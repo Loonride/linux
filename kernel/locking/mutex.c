@@ -60,7 +60,7 @@ EXPORT_SYMBOL(__mutex_init);
  * Bit2 indicates handoff has been done and we're waiting for pickup.
  */
 #define MUTEX_FLAG_WAITERS	0x01
-#define MUTEX_FLAG_HANDOFF	0x02
+#define MUTEX_FLAG_HANDOFF	0x00
 #define MUTEX_FLAG_PICKUP	0x04
 
 #define MUTEX_FLAGS		0x07
