@@ -164,6 +164,36 @@ unsigned long riscv_cached_mimpid(unsigned int cpu_id)
 	return ci->mimpid;
 }
 EXPORT_SYMBOL(riscv_cached_mimpid);
+struct riscv_cpuinfo {
+	unsigned long mvendorid;
+	unsigned long marchid;
+	unsigned long mimpid;
+};
+static DEFINE_PER_CPU(struct riscv_cpuinfo, riscv_cpuinfo);
+
+unsigned long riscv_cached_mvendorid(unsigned int cpu_id)
+{
+	struct riscv_cpuinfo *ci = per_cpu_ptr(&riscv_cpuinfo, cpu_id);
+
+	return ci->mvendorid;
+}
+EXPORT_SYMBOL(riscv_cached_mvendorid);
+
+unsigned long riscv_cached_marchid(unsigned int cpu_id)
+{
+	struct riscv_cpuinfo *ci = per_cpu_ptr(&riscv_cpuinfo, cpu_id);
+
+	return ci->marchid;
+}
+EXPORT_SYMBOL(riscv_cached_marchid);
+
+unsigned long riscv_cached_mimpid(unsigned int cpu_id)
+{
+	struct riscv_cpuinfo *ci = per_cpu_ptr(&riscv_cpuinfo, cpu_id);
+
+	return ci->mimpid;
+}
+EXPORT_SYMBOL(riscv_cached_mimpid);
 
 static int riscv_cpuinfo_starting(unsigned int cpu)
 {
