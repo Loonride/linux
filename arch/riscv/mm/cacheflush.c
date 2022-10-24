@@ -89,6 +89,16 @@ void flush_icache_pte(struct mm_struct *mm, pte_t pte)
 	if (!test_bit(PG_dcache_clean, &folio->flags)) {
 		flush_icache_mm(mm, false);
 		set_bit(PG_dcache_clean, &folio->flags);
+	/*
+	 * HugeTLB pages are always fully mapped, so only setting head page's
+	 * PG_dcache_clean flag is enough.
+	 */
+	if (PageHuge(page))
+		page = compound_head(page);
+
+	if (!test_bit(PG_dcache_clean, &page->flags)) {
+		flush_icache_all();
+		set_bit(PG_dcache_clean, &page->flags);
 	}
 }
 #endif /* CONFIG_MMU */
