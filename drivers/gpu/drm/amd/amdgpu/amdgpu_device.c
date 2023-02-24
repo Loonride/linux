@@ -1445,9 +1445,7 @@ int amdgpu_device_resize_fb_bar(struct amdgpu_device *adev)
 	unsigned int i;
 	u16 cmd;
 	int r;
-
-	if (!IS_ENABLED(CONFIG_PHYS_ADDR_T_64BIT))
-		return 0;
+	return 0;
 
 	/* Bypass for VF */
 	if (amdgpu_sriov_vf(adev))
