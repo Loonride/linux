@@ -153,7 +153,7 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
 		no_context(regs, addr);
 		return;
 	}
-	if (pud_leaf(pudp_get(pud_k)))
+	if (pud_leaf(*pud_k))
 		goto flush_tlb;
 
 	/*
@@ -165,7 +165,7 @@ static inline void vmalloc_fault(struct pt_regs *regs, int code, unsigned long a
 		no_context(regs, addr);
 		return;
 	}
-	if (pmd_leaf(pmdp_get(pmd_k)))
+	if (pmd_leaf(*pmd_k))
 		goto flush_tlb;
 
 	/*
