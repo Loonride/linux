@@ -7,3 +7,4 @@ dtb-$(CONFIG_SOC_SOPHGO) += mango_pioneer_v0.1.dtb
 dtb-$(CONFIG_SOC_SOPHGO) += mango-sophgo-x8evb.dtb
 dtb-$(CONFIG_SOC_SOPHGO) += mango-milkv-pioneer.dtb
 dtb-$(CONFIG_SOC_SOPHGO) += mango-sophgo-pisces.dtb
+dtb-$(CONFIG_SOC_SOPHGO) += mango-sophgo-x4evb.dtb
