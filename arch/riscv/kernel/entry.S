@@ -21,7 +21,6 @@
 
 SYM_CODE_START(handle_exception)
 ENTRY(handle_exception)
-	sfence.vma	zero, t0
 	/*
 	 * If coming from userspace, preserve the user thread pointer and load
 	 * the kernel thread pointer.  If we came from the kernel, the scratch
