@@ -5143,11 +5143,24 @@ void sched_apic_kmod(void) {
 	allow_print_names = true;
 }
 
+void sched_handle_beandip(void) {
+	struct pt_regs *regs;
+
+	regs = task_pt_regs(current);
+
+	// regs->flags &= ~(1 << 9);
+
+	// arch_local_irq_disable();
+	printk("FOUND BEANDIP %lx, %lx\n", regs->ip, regs->flags);
+
+}
+
 void sched_check_beandip(void) {
 	struct task_struct *curr = this_rq()->curr;
 
 	if (strlen(curr->comm) >= 7 && strncmp(curr->comm, "beandip", 7) == 0) {
-		printk("FOUND BEANDIP: %s\n", curr->comm);
+		sched_handle_beandip();
+		// printk("FOUND BEANDIP: %s\n", curr->comm);
 		// asm volatile("cli": : :"memory");
 		// arch_local_irq_disable();
 	}

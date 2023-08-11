@@ -87,7 +87,7 @@ __visible noinstr void do_syscall_64(struct pt_regs *regs, int nr)
 	syscall_exit_to_user_mode(regs);
 }
 
-__visible noinstr void apic_experiment_1(void) {
+void apic_experiment_1(void) {
 	sched_check_beandip();
 }
 
