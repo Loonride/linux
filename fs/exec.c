@@ -2033,6 +2033,9 @@ static int do_execve(struct filename *filename,
 {
 	struct user_arg_ptr argv = { .ptr.native = __argv };
 	struct user_arg_ptr envp = { .ptr.native = __envp };
+
+	// printk("Execve name: %s\n", filename->name);
+
 	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
 }
 

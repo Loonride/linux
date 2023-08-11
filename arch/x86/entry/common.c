@@ -19,6 +19,7 @@
 #include <linux/nospec.h>
 #include <linux/syscalls.h>
 #include <linux/uaccess.h>
+#include <linux/sched.h>
 
 #ifdef CONFIG_XEN_PV
 #include <xen/xen-ops.h>
@@ -85,6 +86,11 @@ __visible noinstr void do_syscall_64(struct pt_regs *regs, int nr)
 	instrumentation_end();
 	syscall_exit_to_user_mode(regs);
 }
+
+__visible noinstr void apic_experiment_1(void) {
+	sched_check_beandip();
+}
+
 #endif
 
 #if defined(CONFIG_X86_32) || defined(CONFIG_IA32_EMULATION)

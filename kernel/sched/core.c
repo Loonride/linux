@@ -77,6 +77,8 @@
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
 
+#include <asm-generic/fixmap.h>
+
 #define CREATE_TRACE_POINTS
 #include <linux/sched/rseq_api.h>
 #include <trace/events/sched.h>
@@ -95,6 +97,16 @@
 #include "../workqueue_internal.h"
 #include "../../io_uring/io-wq.h"
 #include "../smpboot.h"
+
+#define __APIC_BASE_MSR 0x0000001B
+// static void read_msr(uint32_t msr, uint32_t *lo, uint32_t *hi) {
+// 	asm __volatile__("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
+// }
+
+#define APIC_REG_EXFC     0x410
+
+#define APIC_REG_IER      0x480
+#define APIC_GET_IER(x)  (APIC_REG_IER + 0x10*(x))
 
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_send_cpu);
 EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_send_cpumask);
@@ -5123,6 +5135,26 @@ static inline void kmap_local_sched_in(void)
 #endif
 }
 
+static bool allow_print_names = false;
+// static int my_count = 0;
+
+void sched_apic_kmod(void) {
+	printk("HELLO FROM KERNEL!\n");
+	allow_print_names = true;
+}
+
+void sched_check_beandip(void) {
+	struct task_struct *curr = this_rq()->curr;
+
+	if (strlen(curr->comm) >= 7 && strncmp(curr->comm, "beandip", 7) == 0) {
+		printk("FOUND BEANDIP: %s\n", curr->comm);
+		// asm volatile("cli": : :"memory");
+		// arch_local_irq_disable();
+	}
+}
+
+EXPORT_SYMBOL(sched_apic_kmod);
+
 /**
  * prepare_task_switch - prepare to switch tasks
  * @rq: the runqueue preparing to switch
@@ -5140,6 +5172,41 @@ static inline void
 prepare_task_switch(struct rq *rq, struct task_struct *prev,
 		    struct task_struct *next)
 {
+	// struct task_struct *next_parent = next->parent;
+	// struct task_struct *prev_parent = prev->parent;
+
+	// if (next_parent) {
+	// 	if (strlen(next_parent->comm) >= 4 && strncmp(next_parent->comm, "bash", 4) == 0) {
+	// 		printk("TASK NEXT: %s, %d\n", next->comm, next->pid);
+	// 	}
+	// }
+
+	// if (prev_parent) {
+	// 	if (strlen(prev_parent->comm) >= 4 && strncmp(prev_parent->comm, "bash", 4) == 0) {
+	// 		printk("TASK PREV: %s, %d\n", prev->comm, prev->pid);
+	// 	}
+	// }
+
+	// if (strlen(prev->comm) >= 7 && strncmp(prev->comm, "beandip", 7) == 0) {
+	// 	printk("BEANDIP PREV: %s, %d\n", prev->comm, prev->pid);
+	// }
+
+	// if (strlen(next->comm) >= 7 && strncmp(next->comm, "beandip", 7) == 0) {
+	// 	printk("BEANDIP NEXT: %s, %d\n", next->comm, next->pid);
+	// }
+
+	// if (allow_print_names) {
+	// // if (strlen(next->comm) >= 7 && strncmp(next->comm, "beandip", 7) == 0) {
+	// 	if (my_count < 1000) {
+	// 		printk("PREPARE TASK SWITCH: %s, %d\n", next->comm, next->pid);
+
+	// 		my_count++;
+	// 	} else {
+	// 		my_count = 0;
+	// 		allow_print_names = false;
+	// 	}
+	// }
+
 	kcov_prepare_switch(prev);
 	sched_info_switch(rq, prev, next);
 	perf_event_task_sched_out(prev, next);
@@ -5285,6 +5352,11 @@ static __always_inline struct rq *
 context_switch(struct rq *rq, struct task_struct *prev,
 	       struct task_struct *next, struct rq_flags *rf)
 {
+	// uint32_t eax, edx;
+	// uint64_t apic_base_reg;
+	// uint64_t apic_base;
+	// void *apic_virt_addr;
+	
 	prepare_task_switch(rq, prev, next);
 
 	/*
@@ -5338,6 +5410,43 @@ context_switch(struct rq *rq, struct task_struct *prev,
 	rq->clock_update_flags &= ~(RQCF_ACT_SKIP|RQCF_REQ_SKIP);
 
 	prepare_lock_switch(rq, next, rf);
+
+	// if (strlen(prev->comm) >= 7 && strncmp(prev->comm, "beandip", 7) == 0) {
+	// 	printk("LATE BEANDIP PREV: %s, %d\n", prev->comm, prev->pid);
+	// }
+
+	// if (strlen(next->comm) >= 7 && strncmp(next->comm, "beandip", 7) == 0) {
+	// 	printk("LATE BEANDIP NEXT: %s, %d\n", next->comm, next->pid);
+	// 	// local_irq_disable();
+	// 	// arch_local_irq_disable();
+
+	// 	// Check if APIC enabled + read physical APIC address
+	// 	read_msr(__APIC_BASE_MSR, &eax, &edx);
+
+	// 	apic_base_reg = edx;
+	// 	apic_base_reg = (apic_base_reg << 32) | eax;
+	// 	apic_base = apic_base_reg & 0xfffff000;
+
+	// 	printk("apic_base: 0x%llx\n", apic_base);
+
+	// 	apic_virt_addr = (void*)__fix_to_virt(FIX_APIC_BASE);
+	// 	// if (apic_virt_addr) {
+	// 	// 	printk("apic_virt_addr: %px\n", apic_virt_addr);
+	// 	// 	for (i = 0; i < 0x530; i += 8) {
+	// 	// 		printk("%lx: %x\n", __pa(apic_virt_addr + i), *(uint32_t *)(apic_virt_addr + i));
+	// 	// 	}
+	// 	// }
+
+	// 	printk("Val 0x%x\n", *(uint32_t *)(apic_virt_addr + 0x30));
+
+	// 	*(uint32_t *)(apic_virt_addr + APIC_REG_EXFC) = 3;
+	// 	// apic_write(apic, APIC_REG_EXFC, 3);
+
+	// 	for (int i = 0; i < 8; i++) {
+	// 		int offset = APIC_GET_IER(i);
+	// 		printk("IER %px: 0x%x\n", (apic_virt_addr + offset), *(uint32_t *)(apic_virt_addr + offset));
+	// 	}
+	// }
 
 	/* Here we just switch the register state and the stack. */
 	switch_to(prev, next, prev);

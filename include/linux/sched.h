@@ -2444,4 +2444,7 @@ static inline void sched_core_fork(struct task_struct *p) { }
 
 extern void sched_set_stop_task(int cpu, struct task_struct *stop);
 
+void sched_apic_kmod(void);
+void sched_check_beandip(void);
+
 #endif

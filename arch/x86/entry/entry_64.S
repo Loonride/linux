@@ -635,6 +635,8 @@ SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
 	ALTERNATIVE "", "jmp xenpv_restore_regs_and_return_to_usermode", X86_FEATURE_XENPV
 #endif
 
+	call apic_experiment_1
+
 	POP_REGS pop_rdi=0
 
 	/*
