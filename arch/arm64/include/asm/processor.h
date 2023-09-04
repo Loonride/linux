@@ -215,6 +215,7 @@ static inline void start_thread_common(struct pt_regs *regs, unsigned long pc)
 static inline void start_thread(struct pt_regs *regs, unsigned long pc,
 				unsigned long sp)
 {
+	printk("START THREAD\n");
 	start_thread_common(regs, pc);
 	regs->pstate = PSR_MODE_EL0t;
 	spectre_v4_enable_task_mitigation(current);

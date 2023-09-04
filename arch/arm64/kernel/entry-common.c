@@ -343,10 +343,38 @@ static bool cortex_a76_erratum_1463225_debug_handler(struct pt_regs *regs)
 }
 #endif /* CONFIG_ARM64_ERRATUM_1463225 */
 
-UNHANDLED(el1t, 64, sync)
-UNHANDLED(el1t, 64, irq)
-UNHANDLED(el1t, 64, fiq)
-UNHANDLED(el1t, 64, error)
+// UNHANDLED(el1t, 64, sync)
+// UNHANDLED(el1t, 64, irq)
+// UNHANDLED(el1t, 64, fiq)
+// UNHANDLED(el1t, 64, error)
+
+asmlinkage void noinstr el1t_64_sync_handler(struct pt_regs *regs)
+{
+	// regs->pstate &= ~PSR_MODE_MASK;
+	// regs->pstate |= PSR_MODE_EL0t;
+	el0t_64_sync_handler(regs);
+}
+
+asmlinkage void noinstr el1t_64_irq_handler(struct pt_regs *regs)
+{
+	// regs->pstate &= ~PSR_MODE_MASK;
+	// regs->pstate |= PSR_MODE_EL0t;
+	el0t_64_irq_handler(regs);
+}
+
+asmlinkage void noinstr el1t_64_fiq_handler(struct pt_regs *regs)
+{
+	// regs->pstate &= ~PSR_MODE_MASK;
+	// regs->pstate |= PSR_MODE_EL0t;
+	el0t_64_fiq_handler(regs);
+}
+
+asmlinkage void noinstr el1t_64_error_handler(struct pt_regs *regs)
+{
+	// regs->pstate &= ~PSR_MODE_MASK;
+	// regs->pstate |= PSR_MODE_EL0t;
+	el0t_64_error_handler(regs);
+}
 
 static void noinstr el1_abort(struct pt_regs *regs, unsigned long esr)
 {
