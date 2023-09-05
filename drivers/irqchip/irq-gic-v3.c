@@ -875,6 +875,7 @@ static int __gic_populate_rdist(struct redist_region *region, void __iomem *ptr)
 	unsigned long mpidr = cpu_logical_map(smp_processor_id());
 	u64 typer;
 	u32 aff;
+	void __iomem *base;
 
 	/*
 	 * Convert affinity to a 32bit value that can be matched to
@@ -891,6 +892,9 @@ static int __gic_populate_rdist(struct redist_region *region, void __iomem *ptr)
 		raw_spin_lock_init(&gic_data_rdist()->rd_lock);
 		gic_data_rdist_rd_base() = ptr;
 		gic_data_rdist()->phys_base = region->phys_base + offset;
+
+		base = gic_data_rdist_sgi_base();
+		pr_info("CPU%d, RDIST BASE: %lx\n", smp_processor_id(), base);
 
 		pr_info("CPU%d: found redistributor %lx region %d:%pa\n",
 			smp_processor_id(), mpidr,
@@ -2338,4 +2342,18 @@ IRQCHIP_ACPI_DECLARE(gic_v4, ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
 IRQCHIP_ACPI_DECLARE(gic_v3_or_v4, ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
 		     acpi_validate_gic_table, ACPI_MADT_GIC_VERSION_NONE,
 		     gic_acpi_init);
+
+
+bool gic_exp1(unsigned int irq) {
+	bool val;
+	struct irq_data *irqd;
+
+	irqd = irq_desc_get_irq_data(irq_to_desc(irq));
+	val = gic_peek_irq(irqd, GICD_ISPENDR);
+
+	return val;
+}
+
+EXPORT_SYMBOL(gic_exp1);
+
 #endif
