@@ -2369,5 +2369,6 @@ u32 gic_exp2(unsigned int irq) {
 }
 
 EXPORT_SYMBOL(gic_exp1);
+EXPORT_SYMBOL(gic_exp2);
 
 #endif
