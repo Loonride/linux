@@ -2354,6 +2354,20 @@ bool gic_exp1(unsigned int irq) {
 	return val;
 }
 
+u32 gic_exp2(unsigned int irq) {
+	void __iomem *base;
+	u32 index;
+	u32 offset;
+
+	index = (u32)irq;
+	offset = GICD_ISPENDR;
+	// mask = 1 << (index % 32);
+
+	base = gic_data_rdist_sgi_base();
+
+	return readl_relaxed(base + offset + (index / 32) * 4);
+}
+
 EXPORT_SYMBOL(gic_exp1);
 
 #endif

@@ -653,6 +653,7 @@ static inline bool gic_enable_sre(void)
 }
 
 bool gic_exp1(unsigned int irq);
+u32 gic_exp2(unsigned int irq);
 
 #endif
 
