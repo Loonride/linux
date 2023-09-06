@@ -869,6 +869,21 @@ void __iomem *of_iomap(struct device_node *np, int index)
 }
 EXPORT_SYMBOL(of_iomap);
 
+void __iomem *of_iomap_2(struct device_node *np, int index)
+{
+	struct resource res;
+
+	if (of_address_to_resource(np, index, &res))
+		return NULL;
+	pr_info("OF IOMAP 2: %d, %lx, %lx, %ld", index, res.start, resource_size(&res), resource_size(&res));
+
+	if (res.flags & IORESOURCE_MEM_NONPOSTED)
+		return ioremap_np(res.start, resource_size(&res));
+	else
+		return ioremap(res.start, resource_size(&res));
+}
+EXPORT_SYMBOL(of_iomap_2);
+
 /*
  * of_io_request_and_map - Requests a resource and maps the memory mapped IO
  *			   for a given device_node

@@ -44,6 +44,7 @@ extern u64 of_translate_address(struct device_node *np, const __be32 *addr);
 extern int of_address_to_resource(struct device_node *dev, int index,
 				  struct resource *r);
 extern void __iomem *of_iomap(struct device_node *device, int index);
+extern void __iomem *of_iomap_2(struct device_node *device, int index);
 void __iomem *of_io_request_and_map(struct device_node *device,
 				    int index, const char *name);
 
@@ -128,6 +129,7 @@ static inline bool of_dma_is_coherent(struct device_node *np)
 extern int of_address_to_resource(struct device_node *dev, int index,
 				  struct resource *r);
 void __iomem *of_iomap(struct device_node *node, int index);
+void __iomem *of_iomap_2(struct device_node *node, int index);
 #else
 static inline int of_address_to_resource(struct device_node *dev, int index,
 					 struct resource *r)

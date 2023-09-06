@@ -1961,7 +1961,7 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 	u32 nr_redist_regions;
 	int err, i;
 
-	dist_base = of_iomap(node, 0);
+	dist_base = of_iomap_2(node, 0);
 	if (!dist_base) {
 		pr_err("%pOF: unable to map gic dist registers\n", node);
 		return -ENXIO;
@@ -1988,7 +1988,7 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 		int ret;
 
 		ret = of_address_to_resource(node, 1 + i, &res);
-		rdist_regs[i].redist_base = of_iomap(node, 1 + i);
+		rdist_regs[i].redist_base = of_iomap_2(node, 1 + i);
 		if (ret || !rdist_regs[i].redist_base) {
 			pr_err("%pOF: couldn't map region %d\n", node, i);
 			err = -ENODEV;
