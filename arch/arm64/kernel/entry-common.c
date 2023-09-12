@@ -114,7 +114,7 @@ static __always_inline void enter_from_user_mode(struct pt_regs *regs)
  * After this function returns it is not safe to call regular kernel code,
  * intrumentable code, or any code which may trigger an exception.
  */
-static __always_inline void __exit_to_user_mode(void)
+static __always_inline void __exit_to_user_mode(struct pt_regs *regs)
 {
 	if (interrupts_enabled(regs)) {
 		trace_hardirqs_on_prepare();
@@ -139,7 +139,7 @@ static __always_inline void exit_to_user_mode(struct pt_regs *regs)
 {
 	prepare_exit_to_user_mode(regs);
 	mte_check_tfsr_exit();
-	__exit_to_user_mode();
+	__exit_to_user_mode(regs);
 }
 
 asmlinkage void noinstr asm_exit_to_user_mode(struct pt_regs *regs)
