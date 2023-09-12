@@ -116,10 +116,12 @@ static __always_inline void enter_from_user_mode(struct pt_regs *regs)
  */
 static __always_inline void __exit_to_user_mode(void)
 {
-	trace_hardirqs_on_prepare();
-	lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-	user_enter_irqoff();
-	lockdep_hardirqs_on(CALLER_ADDR0);
+	if (interrupts_enabled(regs)) {
+		trace_hardirqs_on_prepare();
+		lockdep_hardirqs_on_prepare(CALLER_ADDR0);
+		user_enter_irqoff();
+		lockdep_hardirqs_on(CALLER_ADDR0);
+	}
 }
 
 static __always_inline void prepare_exit_to_user_mode(struct pt_regs *regs)
