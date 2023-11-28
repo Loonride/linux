@@ -1494,6 +1494,27 @@ handle_page_fault(struct pt_regs *regs, unsigned long error_code,
 	}
 }
 
+/* Beandip
+ * 1. Check PID
+ * 2. Set bit if PID the same
+ */
+pid_t beandip_pid = 0;
+void __user * beandip_user_page_fault_indicator = NULL;
+uint8_t page_fault_hit_val = 0xBD;
+
+EXPORT_SYMBOL(beandip_pid);
+EXPORT_SYMBOL(beandip_user_page_fault_indicator);
+
+static __always_inline void 
+beandip_hit_page_fault(void) {
+	if (beandip_user_page_fault_indicator && current->pid == beandip_pid) {
+		copy_to_user(beandip_user_page_fault_indicator, &page_fault_hit_val, 1); 
+	}
+	return;
+}
+
+
+
 DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
 {
 	unsigned long address = read_cr2();
@@ -1539,6 +1560,7 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
 
 	instrumentation_begin();
 	handle_page_fault(regs, error_code, address);
+	beandip_hit_page_fault();
 	instrumentation_end();
 
 	irqentry_exit(regs, state);
