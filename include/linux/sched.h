@@ -721,7 +721,7 @@ struct kmap_ctrl {
 };
 
 struct task_struct {
-#ifdef CONFIG_THREAD_INFO_IN_TASK
+	#ifdef CONFIG_THREAD_INFO_IN_TASK
 	/*
 	 * For reasons of header soup (see current_thread_info()), this
 	 * must be the first element of task_struct.
@@ -1492,6 +1492,10 @@ struct task_struct {
 	 * New fields for task_struct should be added above here, so that
 	 * they are included in the randomized portion of task_struct.
 	 */
+	bool beandipped;
+	void __user * user_page_fault_indicator;
+	void __user * user_syscall_indicator;
+
 	randomized_struct_fields_end
 
 	/* CPU-specific state of this task: */

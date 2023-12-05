@@ -70,17 +70,12 @@ static __always_inline bool do_syscall_x32(struct pt_regs *regs, int nr)
 	return false;
 }
 
-extern pid_t beandip_pid;
-void __user * beandip_user_syscall_indicator = NULL;
-uint8_t syscall_hit_val = 0xBD;
-
-EXPORT_SYMBOL(beandip_user_syscall_indicator);
+uint64_t syscall_hit_val = 0xBD;
 
 static __always_inline void 
-beandip_hit_syscall(int nr) {
-	if (beandip_user_syscall_indicator && current->pid == beandip_pid) {
-		copy_to_user(beandip_user_syscall_indicator, &syscall_hit_val, 1); 
-		printk("hit syscall number 0x%x\n", nr);
+beandip_hit_syscall(void) {
+	if (current->beandipped && current->user_syscall_indicator) {
+		copy_to_user(current->user_syscall_indicator, &syscall_hit_val, 8); 
 	}
 	return;
 }
@@ -98,7 +93,7 @@ __visible noinstr void do_syscall_64(struct pt_regs *regs, int nr)
 		/* Invalid system call, but still a system call. */
 		regs->ax = __x64_sys_ni_syscall(regs);
 	}
-	beandip_hit_syscall(nr);
+	beandip_hit_syscall();
 
 	instrumentation_end();
 	syscall_exit_to_user_mode(regs);
