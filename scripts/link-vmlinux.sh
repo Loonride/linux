@@ -96,7 +96,7 @@ modpost_link()
 		info LD ${1}
 	fi
 
-	${LD} ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects}
+	${LD} --load-pass-plugin="/home/kir/beandip/beandip/local/lib/BEANDIP.so" ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects}
 }
 
 objtool_link()
