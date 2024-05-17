@@ -73,8 +73,10 @@ modpost_link()
 	local objects
 	local lds=""
 
+	BEANDIP_OBJS=`${PYTHON} ${srctree}/scripts/compile-bitcode-beandip.py ${KBUILD_VMLINUX_OBJS}`
+
 	objects="--whole-archive				\
-		${KBUILD_VMLINUX_OBJS}				\
+		${BEANDIP_OBJS}				\
 		--no-whole-archive				\
 		--start-group					\
 		${KBUILD_VMLINUX_LIBS}				\
@@ -96,7 +98,8 @@ modpost_link()
 		info LD ${1}
 	fi
 
-	${LD} --load-pass-plugin="/home/kir/beandip/beandip/local/lib/BEANDIP.so" ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects}
+	${LD} ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects}
+	# ${LD} --load-pass-plugin="/home/kir/beandip/beandip/local/lib/BEANDIP.so" ${KBUILD_LDFLAGS} -r -o ${1} ${lds} ${objects
 }
 
 objtool_link()
