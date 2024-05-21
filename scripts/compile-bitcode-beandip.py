@@ -27,6 +27,10 @@ def is_file_bitcode(filename):
     else:
         raise Exception(f"bad file: {filename}")
 
+def link_bitcode_files(filenames, outfile):
+    result = subprocess.run(['llvm-link'] + filenames + ['-o', outfile], capture_output=True, text=True, check=True)
+    stdout = result.stdout.strip()
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -50,9 +54,16 @@ if __name__ == "__main__":
     
     # now we can transform bc_files here if we want
 
-    all_files = []
+    # print(f"elf file count: {len(elf_files)}")
+    # print(f"bc file count: {len(bc_files)}")
+
+    bc_outfile = "/home/kir/beandip/linux-qemu/lto_kernel/linux.bc"
+
+    link_bitcode_files(bc_files, bc_outfile)
+
+    all_files = [bc_outfile]
+    # all_files.extend(bc_files)
     all_files.extend(orig_elf_files)
-    all_files.extend(bc_files)
     all_files.extend(elf_files)
 
     full_str = " ".join(all_files)
