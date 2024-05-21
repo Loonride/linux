@@ -31,6 +31,11 @@ def link_bitcode_files(filenames, outfile):
     result = subprocess.run(['llvm-link'] + filenames + ['-o', outfile], capture_output=True, text=True, check=True)
     stdout = result.stdout.strip()
 
+def transform_bitcode_file(input_file, output_file):
+    transform_out_path = "/home/kir/beandip/linux-qemu/lto_kernel/transform.log"
+    with open(transform_out_path, "w") as transform_out:
+        subprocess.run(['/home/kir/beandip/beandip/local/bin/beandip-transform', input_file, output_file], stdout=transform_out, stderr=transform_out)
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -61,7 +66,10 @@ if __name__ == "__main__":
 
     link_bitcode_files(bc_files, bc_outfile)
 
-    all_files = [bc_outfile]
+    bc_transformed = "/home/kir/beandip/linux-qemu/lto_kernel/transformed.bc"
+    transform_bitcode_file(bc_outfile, bc_transformed)
+
+    all_files = [bc_transformed]
     # all_files.extend(bc_files)
     all_files.extend(orig_elf_files)
     all_files.extend(elf_files)
