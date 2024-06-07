@@ -34,7 +34,7 @@ def link_bitcode_files(filenames, outfile):
 def transform_bitcode_file(input_file, output_file):
     transform_out_path = "/home/kir/beandip/linux-qemu/lto_kernel/transform.log"
     with open(transform_out_path, "w") as transform_out:
-        subprocess.run(['/home/kir/beandip/beandip/local/bin/beandip-transform', input_file, output_file], stdout=transform_out, stderr=transform_out)
+        subprocess.run(['/home/kir/beandip/beandip/local/bin/beandip-transform-no-runtime', input_file, output_file], stdout=transform_out, stderr=transform_out)
 
 if __name__ == "__main__":
     args = sys.argv[1:]

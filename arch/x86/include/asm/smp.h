@@ -19,6 +19,8 @@ DECLARE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_llc_shared_map);
 DECLARE_PER_CPU_READ_MOSTLY(u16, cpu_llc_id);
 DECLARE_PER_CPU_READ_MOSTLY(int, cpu_number);
 
+DECLARE_PER_CPU_READ_MOSTLY(u32, beandip_poll_count);
+
 static inline struct cpumask *cpu_llc_shared_mask(int cpu)
 {
 	return per_cpu(cpu_llc_shared_map, cpu);

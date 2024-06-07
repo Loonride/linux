@@ -73,6 +73,10 @@ modpost_link()
 	local objects
 	local lds=""
 
+	rm -f ${srctree}/linux.bc
+	rm -f ${srctree}/transformed.bc
+	rm -f ${srctree}/transform.log
+
 	BEANDIP_OBJS=`${PYTHON} ${srctree}/scripts/compile-bitcode-beandip.py ${KBUILD_VMLINUX_OBJS}`
 
 	objects="--whole-archive				\
