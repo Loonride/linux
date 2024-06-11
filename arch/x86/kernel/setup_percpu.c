@@ -26,7 +26,7 @@
 DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
 EXPORT_PER_CPU_SYMBOL(cpu_number);
 
-DEFINE_PER_CPU_READ_MOSTLY(int, beandip_poll_count);
+DEFINE_PER_CPU_READ_MOSTLY(u32, beandip_poll_count);
 EXPORT_PER_CPU_SYMBOL(beandip_poll_count);
 
 #ifdef CONFIG_X86_64
