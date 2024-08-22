@@ -35,4 +35,4 @@ ifeq ($(CONFIG_DRM_SMI_PRIME),y)
 EXTRA_CFLAGS += -DPRIME
 endif
 
-ccflags-y :=-O2 -fno-tree-scev-cprop -D_D_SMI -D_D_SMI_D -D__cdecl
+ccflags-y :=-O2 -D_D_SMI -D_D_SMI_D -D__cdecl
