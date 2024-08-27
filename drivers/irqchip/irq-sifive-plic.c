@@ -18,6 +18,7 @@
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
 #include <asm/smp.h>
+#include <asm/processor.h>
 
 /*
  * This driver implements a version of the RISC-V PLIC with the actual layout
@@ -62,32 +63,20 @@
 
 #define PLIC_QUIRK_EDGE_INTERRUPT	0
 
-struct plic_priv {
-	struct cpumask lmask;
-	struct irq_domain *irqdomain;
-	void __iomem *regs;
-	unsigned long plic_quirks;
-};
-
-struct plic_handler {
-	bool			present;
-	void __iomem		*hart_base;
-	/*
-	 * Protect mask operations on the registers given that we can't
-	 * assume atomic memory operations work on them.
-	 */
-	raw_spinlock_t		enable_lock;
-	void __iomem		*enable_base;
-	struct plic_priv	*priv;
-};
 static int plic_parent_irq __ro_after_init;
 static bool plic_cpuhp_setup_done __ro_after_init;
-static DEFINE_PER_CPU(struct plic_handler, plic_handlers);
+DEFINE_PER_CPU(struct plic_handler, plic_handlers);
 
 static int plic_irq_set_type(struct irq_data *d, unsigned int type);
 
 static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 {
+	// if (beandip_is_ready() && enable) {
+	// 	return;
+	// }
+
+	// pr_info("PLIC hwirq: %d, enable: %d, beandip_ready: %d", hwirq, enable, beandip_is_ready());
+
 	u32 __iomem *reg = enable_base + (hwirq / 32) * sizeof(u32);
 	u32 hwirq_mask = 1 << (hwirq % 32);
 
@@ -97,7 +86,7 @@ static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 		writel(readl(reg) & ~hwirq_mask, reg);
 }
 
-static void plic_toggle(struct plic_handler *handler, int hwirq, int enable)
+void plic_toggle(struct plic_handler *handler, int hwirq, int enable)
 {
 	raw_spin_lock(&handler->enable_lock);
 	__plic_toggle(handler->enable_base, hwirq, enable);
@@ -145,6 +134,49 @@ static void plic_irq_eoi(struct irq_data *d)
 	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
 
 	writel(d->hwirq, handler->hart_base + CONTEXT_CLAIM);
+}
+
+void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
+	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
+
+	// struct irq_desc *desc = irq_resolve_mapping(handler->priv->irqdomain, 9);
+	struct irq_desc *desc = irq_to_desc(9);
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	if (!desc) {
+		panic("No desc");
+	}
+
+	if (!chip) {
+		panic("No chip");
+	}
+
+	chained_irq_enter(chip, desc);
+
+	int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
+
+	pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
+
+	chained_irq_exit(chip, desc);
+}
+
+irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid)
+{
+	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
+	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
+
+	irq_hw_number_t hwirq = readl(claim);
+
+	if (hwirq) {
+		plic_irq_claim_handle_cpu_hwirq(cpuid, hwirq);
+	}
+
+	return hwirq;
+}
+
+irq_hw_number_t plic_irq_claim_handle(void)
+{
+	return plic_irq_claim_handle_cpu(smp_processor_id());
 }
 
 #ifdef CONFIG_SMP
@@ -297,6 +329,7 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
+		// pr_info("Hardware hwirq: %d\n", hwirq);
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))
@@ -307,7 +340,7 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_exit(chip, desc);
 }
 
-static void plic_set_threshold(struct plic_handler *handler, u32 threshold)
+void plic_set_threshold(struct plic_handler *handler, u32 threshold)
 {
 	/* priority must be > threshold to trigger an interrupt */
 	writel(threshold, handler->hart_base + CONTEXT_THRESHOLD);
@@ -339,6 +372,8 @@ static int __init __plic_init(struct device_node *node,
 			      struct device_node *parent,
 			      unsigned long plic_quirks)
 {
+	pr_info("PLIC INIT");
+
 	int error = 0, nr_contexts, nr_handlers = 0, i;
 	u32 nr_irqs;
 	struct plic_priv *priv;
@@ -351,6 +386,19 @@ static int __init __plic_init(struct device_node *node,
 	priv->plic_quirks = plic_quirks;
 
 	priv->regs = of_iomap(node, 0);
+
+	struct resource res;
+
+	if (of_address_to_resource(node, 0, &res)) {
+		pr_warn("PLIC addr bad\n");
+	}
+
+	priv->phys_start = res.start;
+	priv->phys_size = resource_size(&res);
+
+	pr_info("PLIC phys start: %lx, size: %lx\n", res.start, resource_size(&res));
+	pr_info("PLIC reverse mapped phys: %lx\n", __pa(priv->regs));
+
 	if (WARN_ON(!priv->regs)) {
 		error = -EIO;
 		goto out_free_priv;
@@ -414,9 +462,13 @@ static int __init __plic_init(struct device_node *node,
 		/* Find parent domain and register chained handler */
 		if (!plic_parent_irq && irq_find_host(parent.np)) {
 			plic_parent_irq = irq_of_parse_and_map(node, i);
-			if (plic_parent_irq)
+			if (plic_parent_irq) {
 				irq_set_chained_handler(plic_parent_irq,
 							plic_handle_irq);
+				// pr_info("Context: %d, plic_parent_irq: %d\n", i, plic_parent_irq);
+			} else {
+				// pr_info("No plic_parent_irq for context: %d\n", i);
+			}
 		}
 
 		/*
@@ -435,6 +487,9 @@ static int __init __plic_init(struct device_node *node,
 		handler->present = true;
 		handler->hart_base = priv->regs + CONTEXT_BASE +
 			i * CONTEXT_SIZE;
+		handler->hartid = hartid;
+		handler->context_idx = i;
+		pr_info("PLIC ID: %d\n", i);
 		raw_spin_lock_init(&handler->enable_lock);
 		handler->enable_base = priv->regs + CONTEXT_ENABLE_BASE +
 			i * CONTEXT_ENABLE_SIZE;

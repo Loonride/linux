@@ -138,6 +138,8 @@ static irqreturn_t clint_timer_interrupt(int irq, void *dev_id)
 {
 	struct clock_event_device *evdev = this_cpu_ptr(&clint_clock_event);
 
+	// pr_info("TIMER INTERRUPT");
+
 	csr_clear(CSR_IE, IE_TIE);
 	evdev->event_handler(evdev);
 

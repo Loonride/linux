@@ -9,6 +9,7 @@
 
 #include <linux/types.h>
 #include <linux/cpumask.h>
+#include <asm-generic/types.h>
 
 #ifdef CONFIG_RISCV_SBI
 enum sbi_ext_id {
@@ -331,5 +332,6 @@ static inline void sbi_init(void) {}
 unsigned long riscv_cached_mvendorid(unsigned int cpu_id);
 unsigned long riscv_cached_marchid(unsigned int cpu_id);
 unsigned long riscv_cached_mimpid(unsigned int cpu_id);
+
 
 #endif /* _ASM_RISCV_SBI_H */

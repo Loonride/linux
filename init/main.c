@@ -961,6 +961,7 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	setup_command_line(command_line);
 	setup_nr_cpu_ids();
 	setup_per_cpu_areas();
+
 	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
 	boot_cpu_hotplug_init();
 
@@ -1309,10 +1310,10 @@ int __init_or_module do_one_initcall(initcall_t fn)
 		sprintf(msgbuf, "preemption imbalance ");
 		preempt_count_set(count);
 	}
-	if (irqs_disabled()) {
-		strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
-		local_irq_enable();
-	}
+	// if (irqs_disabled()) {
+	// 	strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
+	// 	local_irq_enable();
+	// }
 	WARN(msgbuf[0], "initcall %pS returned with %s\n", fn, msgbuf);
 
 	add_latent_entropy();
@@ -1541,6 +1542,21 @@ static int __ref kernel_init(void *unused)
 
 	do_sysctl_args();
 
+	beandip_set_ready();
+	pr_info("beandip set to ready state");
+
+	unsigned int i;
+	struct irq_desc *desc;
+	int cpu;
+
+	arch_local_irq_disable();
+	// for_each_online_cpu(cpu) {
+	// 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
+
+	// 	// disables plic
+	// 	plic_set_threshold(handler, 0x7);
+	// }
+
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
@@ -1572,6 +1588,8 @@ static int __ref kernel_init(void *unused)
 			return 0;
 	}
 
+	// try_to_run_init_process("/bin/sh");
+	// return 0;
 	if (!try_to_run_init_process("/sbin/init") ||
 	    !try_to_run_init_process("/etc/init") ||
 	    !try_to_run_init_process("/bin/init") ||
@@ -1654,4 +1672,14 @@ static noinline void __init kernel_init_freeable(void)
 	 */
 
 	integrity_load_keys();
+}
+
+static int beandip_ready = 0;
+
+int beandip_is_ready(void) {
+	return beandip_ready;
+}
+
+void beandip_set_ready(void) {
+	beandip_ready = 1;
 }

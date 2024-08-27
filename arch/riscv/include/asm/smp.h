@@ -53,6 +53,40 @@ void riscv_clear_ipi(void);
 /* Check other CPUs stop or not */
 bool smp_crash_stop_failed(void);
 
+struct plic_priv {
+	struct cpumask lmask;
+	struct irq_domain *irqdomain;
+	void __iomem *regs;
+	unsigned long plic_quirks;
+
+	resource_size_t phys_start;
+	resource_size_t phys_size;
+};
+
+struct plic_handler {
+	bool			present;
+	void __iomem		*hart_base;
+	unsigned long hartid;
+	int context_idx;
+	/*
+	 * Protect mask operations on the registers given that we can't
+	 * assume atomic memory operations work on them.
+	 */
+	raw_spinlock_t		enable_lock;
+	void __iomem		*enable_base;
+	struct plic_priv	*priv;
+};
+
+DECLARE_PER_CPU(struct plic_handler, plic_handlers);
+
+void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq);
+irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid);
+irq_hw_number_t plic_irq_claim_handle(void);
+
+void plic_toggle(struct plic_handler *handler, int hwirq, int enable);
+
+void plic_set_threshold(struct plic_handler *handler, u32 threshold);
+
 /* Secondary hart entry */
 asmlinkage void smp_callin(void);
 
@@ -103,5 +137,15 @@ static inline bool cpu_has_hotplug(unsigned int cpu)
 	return false;
 }
 #endif
+
+struct beandip_info {
+	u32 poll_count;
+};
+
+DECLARE_PER_CPU(struct beandip_info, beandip_info);
+
+u32 beandip_get_poll_count(unsigned int cpu_id);
+
+struct irq_domain *get_intc_domain(void);
 
 #endif /* _ASM_RISCV_SMP_H */
