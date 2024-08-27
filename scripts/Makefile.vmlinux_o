@@ -45,10 +45,11 @@ objtool-args = $(vmlinux-objtool-args-y) --link
 # ---------------------------------------------------------------------------
 
 quiet_cmd_ld_vmlinux.o = LD      $@
-      cmd_ld_vmlinux.o = \
+
+cmd_ld_vmlinux.o = $(PYTHON) ${srctree}/scripts/compile-bitcode-beandip.py \
 	$(LD) ${KBUILD_LDFLAGS} -r -o $@ \
 	$(addprefix -T , $(initcalls-lds)) \
-	--whole-archive vmlinux.a --no-whole-archive \
+	--whole-archive -- --no-whole-archive \
 	--start-group $(KBUILD_VMLINUX_LIBS) --end-group \
 	$(cmd_objtool)
 
