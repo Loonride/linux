@@ -193,6 +193,8 @@ int riscv_pmu_event_set_period(struct perf_event *event)
 
 void riscv_pmu_start(struct perf_event *event, int flags)
 {
+	pr_info("PMU start Event: %d\n", event->id);
+
 	struct hw_perf_event *hwc = &event->hw;
 	struct riscv_pmu *rvpmu = to_riscv_pmu(event->pmu);
 	uint64_t max_period = riscv_pmu_ctr_get_width_mask(event);

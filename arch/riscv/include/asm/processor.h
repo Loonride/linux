@@ -7,6 +7,7 @@
 #define _ASM_RISCV_PROCESSOR_H
 
 #include <linux/const.h>
+#include <linux/printk.h>
 
 #include <vdso/processor.h>
 
@@ -70,6 +71,7 @@ extern unsigned long __get_wchan(struct task_struct *p);
 
 static inline void wait_for_interrupt(void)
 {
+	// pr_info("WAITING FOR INTERRUPT");
 	__asm__ __volatile__ ("wfi");
 }
 

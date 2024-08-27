@@ -127,3 +127,13 @@ static int __init riscv_kvm_init(void)
 	return kvm_init(NULL, sizeof(struct kvm_vcpu), 0, THIS_MODULE);
 }
 module_init(riscv_kvm_init);
+
+static int beandip_ready = 0;
+
+int beandip_is_ready(void) {
+	return beandip_ready;
+}
+
+void beandip_set_ready(void) {
+	beandip_ready = 1;
+}

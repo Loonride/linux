@@ -10,6 +10,9 @@
 #include <asm/processor.h>
 #include <asm/csr.h>
 
+int beandip_is_ready(void);
+void beandip_set_ready(void);
+
 /* read interrupt enabled status */
 static inline unsigned long arch_local_save_flags(void)
 {
@@ -19,12 +22,19 @@ static inline unsigned long arch_local_save_flags(void)
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
+	// if (beandip_is_ready()) {
+	// 	return;
+	// }
+	// return;
+	// pr_info("Enable ints");
+
 	csr_set(CSR_STATUS, SR_IE);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
+	// pr_info("Disable ints");
 	csr_clear(CSR_STATUS, SR_IE);
 }
 

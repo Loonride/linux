@@ -13,6 +13,8 @@ void suspend_save_csrs(struct suspend_context *context)
 	context->scratch = csr_read(CSR_SCRATCH);
 	context->tvec = csr_read(CSR_TVEC);
 	context->ie = csr_read(CSR_IE);
+	// context->ie &= ~(1 << 5);
+	// context->ie &= ~(1 << 9);
 
 	/*
 	 * No need to save/restore IP CSR (i.e. MIP or SIP) because:

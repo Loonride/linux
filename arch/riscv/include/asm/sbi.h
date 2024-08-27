@@ -9,6 +9,7 @@
 
 #include <linux/types.h>
 #include <linux/cpumask.h>
+#include <asm-generic/types.h>
 
 #ifdef CONFIG_RISCV_SBI
 enum sbi_ext_id {
@@ -327,4 +328,10 @@ int sbi_err_map_linux_errno(int err);
 static inline int sbi_remote_fence_i(const struct cpumask *cpu_mask) { return -1; }
 static inline void sbi_init(void) {}
 #endif /* CONFIG_RISCV_SBI */
+
+unsigned long riscv_cached_mvendorid(unsigned int cpu_id);
+unsigned long riscv_cached_marchid(unsigned int cpu_id);
+unsigned long riscv_cached_mimpid(unsigned int cpu_id);
+
+
 #endif /* _ASM_RISCV_SBI_H */
