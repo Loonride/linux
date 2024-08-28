@@ -2,6 +2,9 @@
 import sys
 import subprocess
 
+LINUX_DIR = "/home/kir/beandip/linux-riscv/milkv/linux"
+BEANDIP_DIR = "/home/kir/beandip/beandip"
+
 def run_nm(filename):
     result = subprocess.run(['nm', filename], capture_output=True, text=True, check=True)
     stdout = result.stdout
@@ -32,9 +35,17 @@ def link_bitcode_files(filenames, outfile):
     stdout = result.stdout.strip()
 
 def transform_bitcode_file(input_file, output_file):
-    transform_out_path = "/home/kir/beandip/linux-riscv/milkv/linux/transform.log"
+    transform_out_path = f"{LINUX_DIR}/transform.log"
     with open(transform_out_path, "w") as transform_out:
-        subprocess.run(['/home/kir/beandip/beandip/local/bin/beandip-transform-no-runtime', input_file, output_file], stdout=transform_out, stderr=transform_out)
+        subprocess.run([f'{BEANDIP_DIR}/local/bin/beandip-transform-no-runtime', input_file, output_file], stdout=transform_out, stderr=transform_out)
+
+def llvm_dis(input, output):
+    result = subprocess.run(['llvm-dis', input, '-o', output], capture_output=True, text=True, check=True)
+    stdout = result.stdout.strip()
+
+def llvm_as(input, output):
+    result = subprocess.run(['llvm-as', input, '-o', output], capture_output=True, text=True, check=True)
+    stdout = result.stdout.strip()
 
 if __name__ == "__main__":
     orig_elf_files = []
@@ -62,16 +73,42 @@ if __name__ == "__main__":
     # print(f"elf file count: {len(elf_files)}")
     # print(f"bc file count: {len(bc_files)}")
 
-    bc_outfile = "/home/kir/beandip/linux-riscv/milkv/linux/linux.bc"
+    bc_outfile = f"{LINUX_DIR}/linux.bc"
 
     link_bitcode_files(bc_files, bc_outfile)
 
-    bc_transformed = "/home/kir/beandip/linux-riscv/milkv/linux/transformed.bc"
-    transform_bitcode_file(bc_outfile, bc_transformed)
+    bc_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.bc"
+    ll_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.ll"
+
+    transform_bitcode_file(bc_outfile, bc_transformed_tmp)
+
+    llvm_dis(bc_transformed_tmp, ll_transformed_tmp)
+
+    joined = ""
+    with open(ll_transformed_tmp, 'r') as f:
+        raw_file = f.read()
+        lines = raw_file.split("\n")
+        new_lines = []
+        for l in lines:
+            if l == 'module asm ".weak sys_clock_adjtime32"':
+                new_lines.append('module asm ".globl sys_clock_adjtime32"')
+            else:
+                new_lines.append(l)
+
+        joined = "\n".join(new_lines)
+
+    bc_transformed = f"{LINUX_DIR}/transformed.bc"
+    ll_transformed = f"{LINUX_DIR}/transformed.ll"
+
+    with open(ll_transformed, 'w') as f:
+        f.write(joined)
+
+    llvm_as(ll_transformed, bc_transformed)
 
     all_files = []
-    # all_files.push(bc_transformed)
-    all_files.extend(bc_files)
+    # all_files.append(bc_outfile)
+    all_files.append(bc_transformed)
+    # all_files.extend(bc_files)
     all_files.extend(orig_elf_files)
     all_files.extend(elf_files)
 
@@ -92,5 +129,5 @@ if __name__ == "__main__":
     print(all_files)
     print(last_half)
     ld_args = first_half + all_files + last_half
-    print(ld_args)
+    print(" ".join(ld_args))
     result = subprocess.run(ld_args, capture_output=True, text=True, check=True)
