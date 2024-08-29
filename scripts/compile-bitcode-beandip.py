@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
     llvm_dis(bc_transformed_tmp, ll_transformed_tmp)
 
+    # Weird hack to make the linker happy when building tinyconfig Linux
     joined = ""
     with open(ll_transformed_tmp, 'r') as f:
         raw_file = f.read()
