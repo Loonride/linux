@@ -2,6 +2,7 @@
 import sys
 import subprocess
 
+RUN_BEANDIP_TRANFORM = False
 LINUX_DIR = "/home/kir/beandip/linux-riscv/milkv/linux"
 BEANDIP_DIR = "/home/kir/beandip/beandip"
 
@@ -77,38 +78,42 @@ if __name__ == "__main__":
 
     link_bitcode_files(bc_files, bc_outfile)
 
-    bc_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.bc"
-    ll_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.ll"
-
-    transform_bitcode_file(bc_outfile, bc_transformed_tmp)
-
-    llvm_dis(bc_transformed_tmp, ll_transformed_tmp)
-
-    # Weird hack to make the linker happy when building tinyconfig Linux
-    joined = ""
-    with open(ll_transformed_tmp, 'r') as f:
-        raw_file = f.read()
-        lines = raw_file.split("\n")
-        new_lines = []
-        for l in lines:
-            if l == 'module asm ".weak sys_clock_adjtime32"':
-                new_lines.append('module asm ".globl sys_clock_adjtime32"')
-            else:
-                new_lines.append(l)
-
-        joined = "\n".join(new_lines)
-
-    bc_transformed = f"{LINUX_DIR}/transformed.bc"
-    ll_transformed = f"{LINUX_DIR}/transformed.ll"
-
-    with open(ll_transformed, 'w') as f:
-        f.write(joined)
-
-    llvm_as(ll_transformed, bc_transformed)
-
     all_files = []
-    # all_files.append(bc_outfile)
-    all_files.append(bc_transformed)
+
+    if RUN_BEANDIP_TRANFORM:
+        bc_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.bc"
+        ll_transformed_tmp = f"{LINUX_DIR}/transformed.tmp.ll"
+
+        transform_bitcode_file(bc_outfile, bc_transformed_tmp)
+
+        llvm_dis(bc_transformed_tmp, ll_transformed_tmp)
+
+        # Weird hack to make the linker happy when building tinyconfig Linux
+        joined = ""
+        with open(ll_transformed_tmp, 'r') as f:
+            raw_file = f.read()
+            lines = raw_file.split("\n")
+            new_lines = []
+            for l in lines:
+                if l == 'module asm ".weak sys_clock_adjtime32"':
+                    new_lines.append('module asm ".globl sys_clock_adjtime32"')
+                else:
+                    new_lines.append(l)
+
+            joined = "\n".join(new_lines)
+
+        bc_transformed = f"{LINUX_DIR}/transformed.bc"
+        ll_transformed = f"{LINUX_DIR}/transformed.ll"
+
+        with open(ll_transformed, 'w') as f:
+            f.write(joined)
+
+        llvm_as(ll_transformed, bc_transformed)
+
+        all_files.append(bc_transformed)
+    else:
+        all_files.append(bc_outfile)
+
     # all_files.extend(bc_files)
     all_files.extend(orig_elf_files)
     all_files.extend(elf_files)

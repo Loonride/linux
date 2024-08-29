@@ -101,9 +101,23 @@ unsigned long riscv_cached_mimpid(unsigned int cpu_id)
 }
 EXPORT_SYMBOL(riscv_cached_mimpid);
 
+// BEANDIP
+DEFINE_PER_CPU(struct beandip_info, beandip_info);
+
+u32 get_beandip_poll_count(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->poll_count;
+}
+EXPORT_SYMBOL(get_beandip_poll_count);
+
+// END BEANDIP
+
 static int riscv_cpuinfo_starting(unsigned int cpu)
 {
 	struct riscv_cpuinfo *ci = this_cpu_ptr(&riscv_cpuinfo);
+	struct beandip_info *bi = this_cpu_ptr(&beandip_info);
 
 #if IS_ENABLED(CONFIG_RISCV_SBI)
 	ci->mvendorid = sbi_spec_is_0_1() ? 0 : sbi_get_mvendorid();
@@ -118,6 +132,10 @@ static int riscv_cpuinfo_starting(unsigned int cpu)
 	ci->marchid = 0;
 	ci->mimpid = 0;
 #endif
+
+	bi->poll_count = 0;
+
+	pr_info("Initialized beandip per-cpu struct on cpu: %d\n", cpu);
 
 	return 0;
 }
