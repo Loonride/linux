@@ -2,7 +2,7 @@
 import sys
 import subprocess
 
-RUN_BEANDIP_TRANFORM = False
+RUN_BEANDIP_TRANFORM = True
 LINUX_DIR = "/home/kir/beandip/linux-riscv/milkv/linux"
 BEANDIP_DIR = "/home/kir/beandip/beandip"
 

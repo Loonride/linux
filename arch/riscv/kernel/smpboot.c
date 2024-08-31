@@ -39,6 +39,19 @@ static int beandip_ready = 0;
 
 static DECLARE_COMPLETION(cpu_running);
 
+// BEANDIP
+DEFINE_PER_CPU(struct beandip_info, beandip_info);
+
+u32 get_beandip_poll_count(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->poll_count;
+}
+EXPORT_SYMBOL(get_beandip_poll_count);
+
+// END BEANDIP
+
 void __init smp_prepare_boot_cpu(void)
 {
 }
@@ -151,15 +164,20 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 void __init smp_cpus_done(unsigned int max_cpus)
 {
 	int cpu;
+	struct beandip_info *bi;
 
 	pr_info("SMP: Total of %d processors activated.\n", num_online_cpus());
 
 	for_each_online_cpu(cpu) {
-        pr_info("beandip check CPU: %d\n", cpu);
+		pr_info("beandip init CPU: %d\n", cpu);
+		bi = per_cpu_ptr(&beandip_info, cpu);
+		bi->poll_count = 0;
     }
 
 	// this is where it is safe to now start writing per-cpu data
 	beandip_ready = 1;
+
+	pr_info("beandip initialized.\n");
 }
 
 /*
@@ -199,10 +217,11 @@ static volatile int vol = 0;
 
 void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 {
+	struct beandip_info *bi;
+
 	if (beandip_ready) {
-		// int *v = &get_cpu_var(beandip_poll_count);
-		// *v += 1;
-		// put_cpu_var(beandip_poll_count);
+		bi = this_cpu_ptr(&beandip_info);
+		bi->poll_count++;
 	}
 
 	*(volatile int *)(&vol) = 9;
