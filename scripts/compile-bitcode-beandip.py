@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 import sys
 import subprocess
+import os
+from pathlib import Path
+
+CURR_FILE = Path(os.path.dirname(__file__))
+ROOT_DIR = (CURR_FILE / "..").resolve()
+
+print(ROOT_DIR)
 
 RUN_BEANDIP_TRANFORM = True
-LINUX_DIR = "/home/kir/beandip/linux-riscv/milkv/linux"
+LINUX_DIR = ROOT_DIR
 BEANDIP_DIR = "/home/kir/beandip/beandip"
 
 def run_nm(filename):
