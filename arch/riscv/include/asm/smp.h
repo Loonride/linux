@@ -53,6 +53,8 @@ void riscv_clear_ipi(void);
 /* Check other CPUs stop or not */
 bool smp_crash_stop_failed(void);
 
+unsigned long plic_irq_claim_handle(void);
+
 /* Secondary hart entry */
 asmlinkage void smp_callin(void);
 

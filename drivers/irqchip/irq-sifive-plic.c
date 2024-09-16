@@ -147,6 +147,20 @@ static void plic_irq_eoi(struct irq_data *d)
 	writel(d->hwirq, handler->hart_base + CONTEXT_CLAIM);
 }
 
+irq_hw_number_t plic_irq_claim_handle(void)
+{
+	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
+	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
+
+	irq_hw_number_t hwirq = readl(claim);
+
+	if (hwirq) {
+		int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
+	}
+
+	return hwirq;
+}
+
 #ifdef CONFIG_SMP
 static int plic_set_affinity(struct irq_data *d,
 			     const struct cpumask *mask_val, bool force)

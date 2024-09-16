@@ -178,6 +178,9 @@ void __init smp_cpus_done(unsigned int max_cpus)
 	beandip_ready = 1;
 
 	pr_info("beandip initialized.\n");
+
+	// unsigned int irq = plic_irq_claim();
+	// pr_info("IRQ: %ld\n", irq);
 }
 
 /*
@@ -218,10 +221,18 @@ static volatile int vol = 0;
 void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 {
 	struct beandip_info *bi;
+	unsigned int hwirq;
 
-	if (beandip_ready) {
-		bi = this_cpu_ptr(&beandip_info);
-		bi->poll_count++;
+	if (!beandip_ready) {
+		return;
+	}
+
+	bi = this_cpu_ptr(&beandip_info);
+	bi->poll_count++;
+
+	hwirq = plic_irq_claim_handle();
+	if (hwirq) {
+		printk(KERN_INFO "IRQ: %ld\n", hwirq);
 	}
 
 	*(volatile int *)(&vol) = 9;
