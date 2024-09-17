@@ -35,21 +35,24 @@
 
 #include "head.h"
 
-static int beandip_ready = 0;
-
 static DECLARE_COMPLETION(cpu_running);
 
 // BEANDIP
+static int beandip_ready = 0;
+
 DEFINE_PER_CPU(struct beandip_info, beandip_info);
 
-u32 get_beandip_poll_count(unsigned int cpu_id)
+u32 beandip_get_poll_count(unsigned int cpu_id)
 {
 	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
 
 	return bi->poll_count;
 }
-EXPORT_SYMBOL(get_beandip_poll_count);
+EXPORT_SYMBOL(beandip_get_poll_count);
 
+int beandip_is_ready(void) {
+	return beandip_ready;
+}
 // END BEANDIP
 
 void __init smp_prepare_boot_cpu(void)
@@ -176,6 +179,38 @@ void __init smp_cpus_done(unsigned int max_cpus)
 
 	// this is where it is safe to now start writing per-cpu data
 	beandip_ready = 1;
+
+	unsigned int i;
+	struct irq_desc *desc;
+
+	for_each_irq_desc(i, desc) {
+		struct irq_chip *chip;
+		int ret;
+
+		chip = irq_desc_get_chip(desc);
+		if (!chip)
+			continue;
+
+		int  hwirq = desc->irq_data.hwirq;
+
+		pr_info("beandip hwirq: %d\n", hwirq);
+
+		// /*
+		//  * First try to remove the active state. If this
+		//  * fails, try to EOI the interrupt.
+		//  */
+		// ret = irq_set_irqchip_state(i, IRQCHIP_STATE_ACTIVE, false);
+
+		// if (ret && irqd_irq_inprogress(&desc->irq_data) &&
+		//     chip->irq_eoi)
+		// 	chip->irq_eoi(&desc->irq_data);
+
+		// if (chip->irq_mask)
+		// 	chip->irq_mask(&desc->irq_data);
+
+		// if (chip->irq_disable && !irqd_irq_disabled(&desc->irq_data))
+		// 	chip->irq_disable(&desc->irq_data);
+	}
 
 	pr_info("beandip initialized.\n");
 

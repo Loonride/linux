@@ -333,12 +333,5 @@ unsigned long riscv_cached_mvendorid(unsigned int cpu_id);
 unsigned long riscv_cached_marchid(unsigned int cpu_id);
 unsigned long riscv_cached_mimpid(unsigned int cpu_id);
 
-struct beandip_info {
-	u32 poll_count;
-};
-
-DECLARE_PER_CPU(struct beandip_info, beandip_info);
-
-u32 get_beandip_poll_count(unsigned int cpu_id);
 
 #endif /* _ASM_RISCV_SBI_H */

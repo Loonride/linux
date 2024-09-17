@@ -88,6 +88,12 @@ static int plic_irq_set_type(struct irq_data *d, unsigned int type);
 
 static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 {
+	if (beandip_is_ready() && enable) {
+		return;
+	}
+
+	pr_info("PLIC hwirq: %d, enable: %d, beandip_ready: %d", hwirq, enable, beandip_is_ready());
+
 	u32 __iomem *reg = enable_base + (hwirq / 32) * sizeof(u32);
 	u32 hwirq_mask = 1 << (hwirq % 32);
 
@@ -353,6 +359,8 @@ static int __init __plic_init(struct device_node *node,
 			      struct device_node *parent,
 			      unsigned long plic_quirks)
 {
+	pr_info("PLIC INIT");
+
 	int error = 0, nr_contexts, nr_handlers = 0, i;
 	u32 nr_irqs;
 	struct plic_priv *priv;

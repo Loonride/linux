@@ -1,13 +1,13 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-#include <asm/sbi.h>
+#include <asm/smp.h>
 
 static int beandip_proc_show(struct seq_file *m, void *v) {
   int cpu;
 
 	for_each_online_cpu(cpu) {
-  u32 poll_count = get_beandip_poll_count(cpu);
+  u32 poll_count = beandip_get_poll_count(cpu);
     seq_printf(m, "CPU %d info: %d\n", cpu, poll_count);
   }
   // seq_printf(m, "Hello proc!\n");

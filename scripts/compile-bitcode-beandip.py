@@ -9,7 +9,12 @@ ROOT_DIR = (CURR_FILE / "..").resolve()
 
 print(ROOT_DIR)
 
-RUN_BEANDIP_TRANFORM = True
+beandip_var = os.getenv('BEANDIP')
+
+RUN_BEANDIP_TRANFORM = False
+if beandip_var == "1":
+    RUN_BEANDIP_TRANFORM = True
+
 LINUX_DIR = ROOT_DIR
 BEANDIP_DIR = "/home/kir/beandip/beandip"
 
