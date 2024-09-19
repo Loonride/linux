@@ -53,7 +53,25 @@ void riscv_clear_ipi(void);
 /* Check other CPUs stop or not */
 bool smp_crash_stop_failed(void);
 
+struct plic_handler {
+	bool			present;
+	void __iomem		*hart_base;
+	/*
+	 * Protect mask operations on the registers given that we can't
+	 * assume atomic memory operations work on them.
+	 */
+	raw_spinlock_t		enable_lock;
+	void __iomem		*enable_base;
+	struct plic_priv	*priv;
+};
+
+DECLARE_PER_CPU(struct plic_handler, plic_handlers);
+
 unsigned long plic_irq_claim_handle(void);
+
+void plic_toggle(struct plic_handler *handler, int hwirq, int enable);
+
+void plic_set_threshold(struct plic_handler *handler, u32 threshold);
 
 /* Secondary hart entry */
 asmlinkage void smp_callin(void);
@@ -114,5 +132,6 @@ DECLARE_PER_CPU(struct beandip_info, beandip_info);
 
 u32 beandip_get_poll_count(unsigned int cpu_id);
 int beandip_is_ready(void);
+void beandip_set_ready(void);
 
 #endif /* _ASM_RISCV_SMP_H */

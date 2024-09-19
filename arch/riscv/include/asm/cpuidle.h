@@ -9,6 +9,7 @@
 
 #include <asm/barrier.h>
 #include <asm/processor.h>
+#include <asm/smp.h>
 
 static inline void cpu_do_idle(void)
 {
@@ -18,7 +19,20 @@ static inline void cpu_do_idle(void)
 	 * to entering WFI.
 	 */
 	mb();
-	wait_for_interrupt();
+
+	if (beandip_is_ready()) {
+		unsigned int hwirq;
+
+		while (1) {
+			hwirq = plic_irq_claim_handle();
+			if (hwirq) {
+				pr_info("Polled hwirq: %d\n", hwirq);
+				break;
+			}
+		}
+	} else {
+		wait_for_interrupt();
+	}
 }
 
 #endif

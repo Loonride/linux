@@ -19,12 +19,15 @@ static inline unsigned long arch_local_save_flags(void)
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
+	// return;
+	pr_info("Enable ints");
 	csr_set(CSR_STATUS, SR_IE);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
+	pr_info("Disable ints");
 	csr_clear(CSR_STATUS, SR_IE);
 }
 

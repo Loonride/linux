@@ -1542,6 +1542,21 @@ static int __ref kernel_init(void *unused)
 
 	do_sysctl_args();
 
+	beandip_set_ready();
+	pr_info("beandip set to ready state");
+
+	unsigned int i;
+	struct irq_desc *desc;
+	int cpu;
+
+	arch_local_irq_disable();
+	// for_each_online_cpu(cpu) {
+	// 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
+
+	// 	// disables plic
+	// 	plic_set_threshold(handler, 0x7);
+	// }
+
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)

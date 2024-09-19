@@ -32,6 +32,7 @@
 #include <asm/sections.h>
 #include <asm/sbi.h>
 #include <asm/smp.h>
+#include <asm/processor.h>
 
 #include "head.h"
 
@@ -52,6 +53,10 @@ EXPORT_SYMBOL(beandip_get_poll_count);
 
 int beandip_is_ready(void) {
 	return beandip_ready;
+}
+
+void beandip_set_ready(void) {
+	beandip_ready = 1;
 }
 // END BEANDIP
 
@@ -178,39 +183,27 @@ void __init smp_cpus_done(unsigned int max_cpus)
     }
 
 	// this is where it is safe to now start writing per-cpu data
-	beandip_ready = 1;
 
-	unsigned int i;
-	struct irq_desc *desc;
+	// for_each_irq_desc(i, desc) {
+	// 	struct irq_chip *chip;
+	// 	int ret;
 
-	for_each_irq_desc(i, desc) {
-		struct irq_chip *chip;
-		int ret;
+	// 	chip = irq_desc_get_chip(desc);
+	// 	if (!chip)
+	// 		continue;
 
-		chip = irq_desc_get_chip(desc);
-		if (!chip)
-			continue;
+	// 	int  hwirq = desc->irq_data.hwirq;
 
-		int  hwirq = desc->irq_data.hwirq;
+	// 	pr_info("beandip hwirq: %d\n", hwirq);
 
-		pr_info("beandip hwirq: %d\n", hwirq);
+	// 	int cpu;
 
-		// /*
-		//  * First try to remove the active state. If this
-		//  * fails, try to EOI the interrupt.
-		//  */
-		// ret = irq_set_irqchip_state(i, IRQCHIP_STATE_ACTIVE, false);
+	// 	for_each_online_cpu(cpu) {
+	// 		struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
 
-		// if (ret && irqd_irq_inprogress(&desc->irq_data) &&
-		//     chip->irq_eoi)
-		// 	chip->irq_eoi(&desc->irq_data);
-
-		// if (chip->irq_mask)
-		// 	chip->irq_mask(&desc->irq_data);
-
-		// if (chip->irq_disable && !irqd_irq_disabled(&desc->irq_data))
-		// 	chip->irq_disable(&desc->irq_data);
-	}
+	// 		plic_toggle(handler, hwirq, 0);
+	// 	}
+	// }
 
 	pr_info("beandip initialized.\n");
 

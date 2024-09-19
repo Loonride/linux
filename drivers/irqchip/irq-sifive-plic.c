@@ -18,6 +18,7 @@
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
 #include <asm/smp.h>
+#include <asm/processor.h>
 
 /*
  * This driver implements a version of the RISC-V PLIC with the actual layout
@@ -69,28 +70,17 @@ struct plic_priv {
 	unsigned long plic_quirks;
 };
 
-struct plic_handler {
-	bool			present;
-	void __iomem		*hart_base;
-	/*
-	 * Protect mask operations on the registers given that we can't
-	 * assume atomic memory operations work on them.
-	 */
-	raw_spinlock_t		enable_lock;
-	void __iomem		*enable_base;
-	struct plic_priv	*priv;
-};
 static int plic_parent_irq __ro_after_init;
 static bool plic_cpuhp_setup_done __ro_after_init;
-static DEFINE_PER_CPU(struct plic_handler, plic_handlers);
+DEFINE_PER_CPU(struct plic_handler, plic_handlers);
 
 static int plic_irq_set_type(struct irq_data *d, unsigned int type);
 
 static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 {
-	if (beandip_is_ready() && enable) {
-		return;
-	}
+	// if (beandip_is_ready() && enable) {
+	// 	return;
+	// }
 
 	pr_info("PLIC hwirq: %d, enable: %d, beandip_ready: %d", hwirq, enable, beandip_is_ready());
 
@@ -103,7 +93,7 @@ static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 		writel(readl(reg) & ~hwirq_mask, reg);
 }
 
-static void plic_toggle(struct plic_handler *handler, int hwirq, int enable)
+void plic_toggle(struct plic_handler *handler, int hwirq, int enable)
 {
 	raw_spin_lock(&handler->enable_lock);
 	__plic_toggle(handler->enable_base, hwirq, enable);
@@ -317,6 +307,7 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
+		pr_info("Hardware hwirq: %d\n", hwirq);
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))
@@ -327,7 +318,7 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_exit(chip, desc);
 }
 
-static void plic_set_threshold(struct plic_handler *handler, u32 threshold)
+void plic_set_threshold(struct plic_handler *handler, u32 threshold)
 {
 	/* priority must be > threshold to trigger an interrupt */
 	writel(threshold, handler->hart_base + CONTEXT_THRESHOLD);
