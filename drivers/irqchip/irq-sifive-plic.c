@@ -151,7 +151,25 @@ irq_hw_number_t plic_irq_claim_handle(void)
 	irq_hw_number_t hwirq = readl(claim);
 
 	if (hwirq) {
+		// struct irq_desc *desc = irq_resolve_mapping(handler->priv->irqdomain, 9);
+		struct irq_desc *desc = irq_to_desc(9);
+		struct irq_chip *chip = irq_desc_get_chip(desc);
+
+		if (!desc) {
+			pr_warn("No desc");
+			return 0;
+		}
+
+		if (!chip) {
+			pr_warn("No chip");
+			return 0;
+		}
+
+		chained_irq_enter(chip, desc);
+
 		int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
+
+		chained_irq_exit(chip, desc);
 	}
 
 	return hwirq;
@@ -427,9 +445,13 @@ static int __init __plic_init(struct device_node *node,
 		/* Find parent domain and register chained handler */
 		if (!plic_parent_irq && irq_find_host(parent.np)) {
 			plic_parent_irq = irq_of_parse_and_map(node, i);
-			if (plic_parent_irq)
+			if (plic_parent_irq) {
 				irq_set_chained_handler(plic_parent_irq,
 							plic_handle_irq);
+				pr_info("Context: %d, plic_parent_irq: %d\n", i, plic_parent_irq);
+			} else {
+				pr_info("No plic_parent_irq for context: %d\n", i);
+			}
 		}
 
 		/*

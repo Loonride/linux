@@ -22,6 +22,18 @@ static inline void cpu_do_idle(void)
 
 	unsigned int hwirq;
 
+	// pr_info("BEGIN CPU IDLE\n");
+
+	hwirq = plic_irq_claim_handle();
+	if (hwirq) {
+		pr_info("Polled hwirq: %d\n", hwirq);
+		return;
+	}
+
+	if (arch_irqs_disabled()) {
+		return;
+	}
+
 	while (1) {
 		hwirq = plic_irq_claim_handle();
 		if (hwirq) {
@@ -30,10 +42,10 @@ static inline void cpu_do_idle(void)
 		}
 	}
 
+	// pr_info("END CPU IDLE\n");
+
 	// wait_for_interrupt();
 
-
-	// pr_info("HERE1\n");
 
 	// if (beandip_is_ready()) {
 	// 	unsigned int hwirq;

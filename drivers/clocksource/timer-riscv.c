@@ -108,6 +108,8 @@ EXPORT_SYMBOL_GPL(riscv_cs_get_mult_shift);
 /* called directly from the low-level interrupt handler */
 static irqreturn_t riscv_timer_interrupt(int irq, void *dev_id)
 {
+	// pr_info("TIMER INTERRUPT");
+
 	struct clock_event_device *evdev = this_cpu_ptr(&riscv_clock_event);
 
 	csr_clear(CSR_IE, IE_TIE);

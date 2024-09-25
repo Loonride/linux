@@ -51,11 +51,18 @@ static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 
 static void riscv_intc_irq_mask(struct irq_data *d)
 {
+	// pr_info("INTC masking: %d\n", d->hwirq);
+
 	csr_clear(CSR_IE, BIT(d->hwirq));
 }
 
 static void riscv_intc_irq_unmask(struct irq_data *d)
 {
+	// pr_info("INTC unmasking: %d\n", d->hwirq);
+	if (d->hwirq == 9) {
+		return;
+	}
+
 	csr_set(CSR_IE, BIT(d->hwirq));
 }
 
