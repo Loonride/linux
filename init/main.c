@@ -1310,10 +1310,10 @@ int __init_or_module do_one_initcall(initcall_t fn)
 		sprintf(msgbuf, "preemption imbalance ");
 		preempt_count_set(count);
 	}
-	if (irqs_disabled()) {
-		strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
-		local_irq_enable();
-	}
+	// if (irqs_disabled()) {
+	// 	strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
+	// 	local_irq_enable();
+	// }
 	WARN(msgbuf[0], "initcall %pS returned with %s\n", fn, msgbuf);
 
 	add_latent_entropy();
@@ -1670,4 +1670,14 @@ static noinline void __init kernel_init_freeable(void)
 	 */
 
 	integrity_load_keys();
+}
+
+static int beandip_ready = 0;
+
+int beandip_is_ready(void) {
+	return beandip_ready;
+}
+
+void beandip_set_ready(void) {
+	beandip_ready = 1;
 }

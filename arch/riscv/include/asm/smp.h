@@ -131,7 +131,5 @@ struct beandip_info {
 DECLARE_PER_CPU(struct beandip_info, beandip_info);
 
 u32 beandip_get_poll_count(unsigned int cpu_id);
-int beandip_is_ready(void);
-void beandip_set_ready(void);
 
 #endif /* _ASM_RISCV_SMP_H */

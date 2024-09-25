@@ -20,19 +20,38 @@ static inline void cpu_do_idle(void)
 	 */
 	mb();
 
-	if (beandip_is_ready()) {
-		unsigned int hwirq;
+	unsigned int hwirq;
 
-		while (1) {
-			hwirq = plic_irq_claim_handle();
-			if (hwirq) {
-				pr_info("Polled hwirq: %d\n", hwirq);
-				break;
-			}
+	while (1) {
+		hwirq = plic_irq_claim_handle();
+		if (hwirq) {
+			pr_info("Polled hwirq: %d\n", hwirq);
+			break;
 		}
-	} else {
-		wait_for_interrupt();
 	}
+
+	// wait_for_interrupt();
+
+
+	// pr_info("HERE1\n");
+
+	// if (beandip_is_ready()) {
+	// 	unsigned int hwirq;
+
+	// 	while (1) {
+	// 		hwirq = plic_irq_claim_handle();
+	// 		if (hwirq) {
+	// 			pr_info("Polled hwirq: %d\n", hwirq);
+	// 			break;
+	// 		}
+	// 	}
+	// } else {
+	// 	pr_info("Wait for irq\n");
+	// 	wait_for_interrupt();
+	// 	pr_info("Got irq\n");
+	// }
+
+	// pr_info("HERE2\n");
 }
 
 #endif

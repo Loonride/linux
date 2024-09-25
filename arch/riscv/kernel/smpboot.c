@@ -39,7 +39,6 @@
 static DECLARE_COMPLETION(cpu_running);
 
 // BEANDIP
-static int beandip_ready = 0;
 
 DEFINE_PER_CPU(struct beandip_info, beandip_info);
 
@@ -51,13 +50,6 @@ u32 beandip_get_poll_count(unsigned int cpu_id)
 }
 EXPORT_SYMBOL(beandip_get_poll_count);
 
-int beandip_is_ready(void) {
-	return beandip_ready;
-}
-
-void beandip_set_ready(void) {
-	beandip_ready = 1;
-}
 // END BEANDIP
 
 void __init smp_prepare_boot_cpu(void)
@@ -251,7 +243,7 @@ void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 	struct beandip_info *bi;
 	unsigned int hwirq;
 
-	if (!beandip_ready) {
+	if (!beandip_is_ready()) {
 		return;
 	}
 
