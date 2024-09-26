@@ -26,7 +26,7 @@ static inline void cpu_do_idle(void)
 
 	hwirq = plic_irq_claim_handle();
 	if (hwirq) {
-		pr_info("Polled hwirq: %d\n", hwirq);
+		// pr_info("Polled hwirq: %d\n", hwirq);
 		return;
 	}
 
@@ -37,7 +37,7 @@ static inline void cpu_do_idle(void)
 	while (1) {
 		hwirq = plic_irq_claim_handle();
 		if (hwirq) {
-			pr_info("Polled hwirq: %d\n", hwirq);
+			// pr_info("Polled hwirq: %d\n", hwirq);
 			break;
 		}
 	}

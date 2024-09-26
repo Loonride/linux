@@ -82,7 +82,7 @@ static void __plic_toggle(void __iomem *enable_base, int hwirq, int enable)
 	// 	return;
 	// }
 
-	pr_info("PLIC hwirq: %d, enable: %d, beandip_ready: %d", hwirq, enable, beandip_is_ready());
+	// pr_info("PLIC hwirq: %d, enable: %d, beandip_ready: %d", hwirq, enable, beandip_is_ready());
 
 	u32 __iomem *reg = enable_base + (hwirq / 32) * sizeof(u32);
 	u32 hwirq_mask = 1 << (hwirq % 32);
@@ -448,9 +448,9 @@ static int __init __plic_init(struct device_node *node,
 			if (plic_parent_irq) {
 				irq_set_chained_handler(plic_parent_irq,
 							plic_handle_irq);
-				pr_info("Context: %d, plic_parent_irq: %d\n", i, plic_parent_irq);
+				// pr_info("Context: %d, plic_parent_irq: %d\n", i, plic_parent_irq);
 			} else {
-				pr_info("No plic_parent_irq for context: %d\n", i);
+				// pr_info("No plic_parent_irq for context: %d\n", i);
 			}
 		}
 

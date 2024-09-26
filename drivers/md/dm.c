@@ -3412,10 +3412,10 @@ MODULE_LICENSE("GPL");
 
 static int beandip_ready = 0;
 
-int beandip_is_ready(void) {
+int __attribute__((weak)) beandip_is_ready(void) {
 	return beandip_ready;
 }
 
-void beandip_set_ready(void) {
+void __attribute__((weak)) beandip_set_ready(void) {
 	beandip_ready = 1;
 }
