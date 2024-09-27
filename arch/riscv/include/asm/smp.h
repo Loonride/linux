@@ -53,6 +53,16 @@ void riscv_clear_ipi(void);
 /* Check other CPUs stop or not */
 bool smp_crash_stop_failed(void);
 
+struct plic_priv {
+	struct cpumask lmask;
+	struct irq_domain *irqdomain;
+	void __iomem *regs;
+	unsigned long plic_quirks;
+
+	resource_size_t phys_start;
+	resource_size_t phys_size;
+};
+
 struct plic_handler {
 	bool			present;
 	void __iomem		*hart_base;

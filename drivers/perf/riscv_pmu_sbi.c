@@ -659,7 +659,7 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 	 * Enable the access for CYCLE, TIME, and INSTRET CSRs from userspace,
 	 * as is necessary to maintain uABI compatibility.
 	 */
-	csr_write(CSR_SCOUNTEREN, 0x7);
+	// csr_write(CSR_SCOUNTEREN, 0x7);
 
 	/* Stop all the counters so that they can be enabled from perf */
 	pmu_sbi_stop_all(pmu);
@@ -682,7 +682,7 @@ static int pmu_sbi_dying_cpu(unsigned int cpu, struct hlist_node *node)
 	}
 
 	/* Disable all counters access for user mode now */
-	csr_write(CSR_SCOUNTEREN, 0x0);
+	// csr_write(CSR_SCOUNTEREN, 0x0);
 
 	return 0;
 }

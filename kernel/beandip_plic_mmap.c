@@ -9,11 +9,13 @@
 #include <linux/mm.h>
 #include <linux/highmem.h>
 #include <linux/sched/task_stack.h>
+#include <linux/io.h>
 
 // #include <linux/sched.h>
 
 #include <asm/io.h>
 #include <asm/fixmap.h>
+#include <asm/sbi.h>
 // #include <asm/apicdef.h>
 
 #include <asm-generic/fixmap.h>
@@ -36,7 +38,7 @@ extern void __user * beandip_user_syscall_indicator;
 #define CONTEXT_CLAIM 0x04
 
 #define __APIC_BASE_MSR 0x0000001B
-#define APIC_MAP_SIZE 0x1000
+// #define APIC_MAP_SIZE 0x600000
 
 #define MY_APIC_BASE_MSR 0x0000001B
 #define MY_APIC_SIZE 0x530
@@ -113,21 +115,34 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct pt_regs *regs;
 
 // #ifdef CONFIG_X86_64
-	if (requested_size < APIC_MAP_SIZE) {
-		printk("apic_dev_kmod: start 0x%lx, end 0x%lx\n", vma->vm_start, vma->vm_end);
-		printk("apic_dev_kmod: incorrect mapping size for APIC\n");
-		return -1;
-	}
+	// if (requested_size < APIC_MAP_SIZE) {
+	// 	printk("apic_dev_kmod: start 0x%lx, end 0x%lx\n", vma->vm_start, vma->vm_end);
+	// 	printk("apic_dev_kmod: incorrect mapping size for APIC\n");
+	// 	return -1;
+	// }
+
+	// printk("Data: %d\n", readl((void __iomem *)(APIC_BASE_PFN + 0x04)));
 
 	// Linux 6.4
 	// vm_flags_set(vma, VM_IO);
 	vma->vm_flags |= VM_IO;
-	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN, APIC_MAP_SIZE, vma->vm_page_prot);
+	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN, requested_size, vma->vm_page_prot);
 	if (err) {
 		printk("apic_dev_kmod: apic_mmap [remap_page_range] failed!\n");
 		return -1;
 	}
 	printk("apic_dev_kmod: hopefully mmaped!\n");
+
+	printk("SCOUNTEREN: %lx\n", csr_read(CSR_SCOUNTEREN));
+
+	uint32_t event_code = 0x0; // Event code for counting cycles (HPM counter event)
+    // Set up HPM Counter 3 to count cycles
+    asm volatile (
+        "csrw mhpmevent4, %0"   // Write event code to mhpmevent3
+        : // No output
+        : "r" (event_code)       // Input: event_code
+        : // No clobber
+    );
 
 	// regs = task_pt_regs(current);
 	// // IF flags bit
@@ -243,15 +258,30 @@ static int __init beandip_plic_mmap_init(void)
 #else // RISC-V
 	printk("Hello from RISC-V beandip PLIC mmap kernel module!\n");
 
+	// enable all performance counters
+	csr_write(CSR_SCOUNTEREN, 0xFFFFFFFF);
+
+	// unsigned long counter_num = 0;
+	// unsigned long init_val = 0;
+	// unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
+	// sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, counter_num,
+	// 		1, flag, init_val, 0, 0);
+
     int cpu;
 
     uint64_t min_context_base = 0;
     bool min_context_base_set = false;
     uint64_t max_context_base = 0;
 
+	resource_size_t phys_start = 0;
+	resource_size_t phys_size = 0;
+
     for_each_online_cpu(cpu) {
         struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
         void __iomem *claim = handler->hart_base;
+
+		phys_start = handler->priv->phys_start;
+		phys_size = handler->priv->phys_size;
 
         uint64_t context_base = (uint64_t)claim;
 
@@ -272,8 +302,10 @@ static int __init beandip_plic_mmap_init(void)
     printk("Min PLIC context base: %lx\n", min_context_base);
     printk("Max PLIC context base: %lx\n", max_context_base);
     printk("PLIC Context diff: %lx\n", context_diff);
+
+	printk("PLIC phys start: %lx, size: %lx\n", phys_start, phys_size);
     // shift to page
-    APIC_BASE_PFN = min_context_base >> 12;
+    APIC_BASE_PFN = (uint64_t)phys_start >> 12;
 #endif
 	
 	// setup /dev/apic_dev

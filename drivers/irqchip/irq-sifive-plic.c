@@ -63,13 +63,6 @@
 
 #define PLIC_QUIRK_EDGE_INTERRUPT	0
 
-struct plic_priv {
-	struct cpumask lmask;
-	struct irq_domain *irqdomain;
-	void __iomem *regs;
-	unsigned long plic_quirks;
-};
-
 static int plic_parent_irq __ro_after_init;
 static bool plic_cpuhp_setup_done __ro_after_init;
 DEFINE_PER_CPU(struct plic_handler, plic_handlers);
@@ -325,7 +318,7 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
-		pr_info("Hardware hwirq: %d\n", hwirq);
+		// pr_info("Hardware hwirq: %d\n", hwirq);
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))
@@ -382,6 +375,19 @@ static int __init __plic_init(struct device_node *node,
 	priv->plic_quirks = plic_quirks;
 
 	priv->regs = of_iomap(node, 0);
+
+	struct resource res;
+
+	if (of_address_to_resource(node, 0, &res)) {
+		pr_warn("PLIC addr bad\n");
+	}
+
+	priv->phys_start = res.start;
+	priv->phys_size = resource_size(&res);
+
+	pr_info("PLIC phys start: %lx, size: %lx\n", res.start, resource_size(&res));
+	pr_info("PLIC reverse mapped phys: %lx\n", __pa(priv->regs));
+
 	if (WARN_ON(!priv->regs)) {
 		error = -EIO;
 		goto out_free_priv;
@@ -470,6 +476,7 @@ static int __init __plic_init(struct device_node *node,
 		handler->present = true;
 		handler->hart_base = priv->regs + CONTEXT_BASE +
 			i * CONTEXT_SIZE;
+		pr_info("PLIC ID: %d\n", i);
 		raw_spin_lock_init(&handler->enable_lock);
 		handler->enable_base = priv->regs + CONTEXT_ENABLE_BASE +
 			i * CONTEXT_ENABLE_SIZE;
