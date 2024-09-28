@@ -135,14 +135,37 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	printk("SCOUNTEREN: %lx\n", csr_read(CSR_SCOUNTEREN));
 
-	uint32_t event_code = 0x0; // Event code for counting cycles (HPM counter event)
-    // Set up HPM Counter 3 to count cycles
-    asm volatile (
-        "csrw mhpmevent4, %0"   // Write event code to mhpmevent3
-        : // No output
-        : "r" (event_code)       // Input: event_code
-        : // No clobber
-    );
+	unsigned long init_val = 0;
+	unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
+	// sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, counter_num,
+	// 		1, flag, init_val, 0, 0);
+
+	struct sbiret ret;
+
+	for (int idx = 0; idx < 10; idx++) {
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx,
+			1, flag, init_val, 0, 0);
+		
+		pr_info("idx: %d, Error: %d\n", idx, ret.error);
+	}
+
+	int idx = 0;
+	for (int i = 0; i < 10; i++) {
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, 0, 0, 0, 0);
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, 0, 0, 0, 0);
+
+		int res = csr_read(CSR_CYCLE);
+		pr_info("CSR cycle: %d\n", res);
+	}
+
+	// uint32_t event_code = 0x0; // Event code for counting cycles (HPM counter event)
+    // // Set up HPM Counter 3 to count cycles
+    // asm volatile (
+    //     "csrw mhpmevent4, %0"   // Write event code to mhpmevent3
+    //     : // No output
+    //     : "r" (event_code)       // Input: event_code
+    //     : // No clobber
+    // );
 
 	// regs = task_pt_regs(current);
 	// // IF flags bit
@@ -260,12 +283,6 @@ static int __init beandip_plic_mmap_init(void)
 
 	// enable all performance counters
 	csr_write(CSR_SCOUNTEREN, 0xFFFFFFFF);
-
-	// unsigned long counter_num = 0;
-	// unsigned long init_val = 0;
-	// unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
-	// sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, counter_num,
-	// 		1, flag, init_val, 0, 0);
 
     int cpu;
 

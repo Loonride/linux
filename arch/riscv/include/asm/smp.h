@@ -142,4 +142,6 @@ DECLARE_PER_CPU(struct beandip_info, beandip_info);
 
 u32 beandip_get_poll_count(unsigned int cpu_id);
 
+struct irq_domain *get_intc_domain(void);
+
 #endif /* _ASM_RISCV_SMP_H */

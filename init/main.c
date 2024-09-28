@@ -1588,11 +1588,13 @@ static int __ref kernel_init(void *unused)
 			return 0;
 	}
 
-	if (!try_to_run_init_process("/sbin/init") ||
-	    !try_to_run_init_process("/etc/init") ||
-	    !try_to_run_init_process("/bin/init") ||
-	    !try_to_run_init_process("/bin/sh"))
-		return 0;
+	try_to_run_init_process("/bin/sh");
+	return 0;
+	// if (!try_to_run_init_process("/sbin/init") ||
+	//     !try_to_run_init_process("/etc/init") ||
+	//     !try_to_run_init_process("/bin/init") ||
+	//     !try_to_run_init_process("/bin/sh"))
+	// 	return 0;
 
 	panic("No working init found.  Try passing init= option to kernel. "
 	      "See Linux Documentation/admin-guide/init.rst for guidance.");

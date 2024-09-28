@@ -163,6 +163,9 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 
 void __init smp_cpus_done(unsigned int max_cpus)
 {
+	// disable timer
+	// csr_clear(CSR_IE, BIT(5));
+
 	int cpu;
 	struct beandip_info *bi;
 

@@ -483,6 +483,8 @@ static int pmu_sbi_get_ctrinfo(int nctr, unsigned long *mask)
 			/* The logical counter ids are not expected to be contiguous */
 			continue;
 
+		pr_info("PMU SBI Counter found: %d\n", i);
+
 		*mask |= BIT(i);
 
 		cinfo.value = ret.value;
@@ -660,6 +662,13 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 	 * as is necessary to maintain uABI compatibility.
 	 */
 	// csr_write(CSR_SCOUNTEREN, 0x7);
+	csr_write(CSR_SCOUNTEREN, 0xFFFFFFFF);
+	pr_info("SBI STARTING CPU\n");
+
+	for (int i = 0; i < cpu_hw_evt->n_events; i++) {
+		struct perf_event *event = cpu_hw_evt->events[i];
+		pr_info("Event id: %lu, idx: %d\n", event->id, event->hw.idx);
+	}
 
 	/* Stop all the counters so that they can be enabled from perf */
 	pmu_sbi_stop_all(pmu);

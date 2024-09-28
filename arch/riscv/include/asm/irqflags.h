@@ -27,7 +27,8 @@ static inline void arch_local_irq_enable(void)
 	// }
 	// return;
 	// pr_info("Enable ints");
-	csr_set(CSR_STATUS, SR_IE);
+
+	// csr_set(CSR_STATUS, SR_IE);
 }
 
 /* unconditionally disable interrupts */

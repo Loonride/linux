@@ -19,9 +19,15 @@
 
 static struct irq_domain *intc_domain;
 
+struct irq_domain *get_intc_domain(void) {
+	return intc_domain;
+}
+
 static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 {
 	unsigned long cause = regs->cause & ~CAUSE_IRQ_FLAG;
+
+	// pr_info("IRQ cause: %lu\n", cause);
 
 	if (unlikely(cause >= BITS_PER_LONG))
 		panic("unexpected interrupt cause");
@@ -59,6 +65,7 @@ static void riscv_intc_irq_mask(struct irq_data *d)
 static void riscv_intc_irq_unmask(struct irq_data *d)
 {
 	// pr_info("INTC unmasking: %d\n", d->hwirq);
+	// if (d->hwirq == 9 || d->hwirq == 5) {
 	if (d->hwirq == 9) {
 		return;
 	}
