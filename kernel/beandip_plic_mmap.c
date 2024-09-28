@@ -16,6 +16,7 @@
 #include <asm/io.h>
 #include <asm/fixmap.h>
 #include <asm/sbi.h>
+#include <asm/smp.h>
 // #include <asm/apicdef.h>
 
 #include <asm-generic/fixmap.h>
@@ -45,6 +46,7 @@ extern void __user * beandip_user_syscall_indicator;
 
 #define MY_APIC_PF_INDICATOR 0xBDBD0001
 #define MY_APIC_SYSCALL_INDICATOR 0xBDBD0002
+#define MY_APIC_HIT_INDICATOR 0xBDBD0003
 
 #define APIC_ENABLED_OFFSET 11
 #define APIC_DEV_CLASS_MODE 0444
@@ -85,7 +87,12 @@ uint64_t APIC_BASE_PFN = 0;
 =====================
 Device Driver Stuff
 =====================
-*/ 
+*/
+
+struct beandip_hit_params {
+    int hartid;
+    int hwirq;
+};
 
 static struct cdev apic_cdev;
 static struct class *apic_class;
@@ -171,6 +178,8 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 }
 
 static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
+	struct beandip_hit_params params;
+
 	switch(cmd) {
 		case MY_APIC_PF_INDICATOR:
 			printk("Registering page fault indicator\n");
@@ -179,6 +188,20 @@ static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
 			break;
 		case MY_APIC_SYSCALL_INDICATOR:
 			printk("Registering syscall indicator\n");
+			// current->user_syscall_indicator = (void __user *) arg;
+			// current->beandipped = true;
+			break;
+		case MY_APIC_HIT_INDICATOR:
+			if (copy_from_user(&params, (struct beandip_hit_params *)arg, sizeof(struct beandip_hit_params))) {
+                return -EFAULT;
+            }
+
+			int cpuid = riscv_hartid_to_cpuid(params.hartid);
+
+			printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", params.hartid, params.hwirq, cpuid);
+
+			plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
+
 			// current->user_syscall_indicator = (void __user *) arg;
 			// current->beandipped = true;
 			break;

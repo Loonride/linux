@@ -79,7 +79,9 @@ struct plic_handler {
 
 DECLARE_PER_CPU(struct plic_handler, plic_handlers);
 
-unsigned long plic_irq_claim_handle(void);
+void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq);
+irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid);
+irq_hw_number_t plic_irq_claim_handle(void);
 
 void plic_toggle(struct plic_handler *handler, int hwirq, int enable);
 

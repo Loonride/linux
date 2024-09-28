@@ -136,36 +136,47 @@ static void plic_irq_eoi(struct irq_data *d)
 	writel(d->hwirq, handler->hart_base + CONTEXT_CLAIM);
 }
 
-irq_hw_number_t plic_irq_claim_handle(void)
+void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
+	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
+
+	// struct irq_desc *desc = irq_resolve_mapping(handler->priv->irqdomain, 9);
+	struct irq_desc *desc = irq_to_desc(9);
+	struct irq_chip *chip = irq_desc_get_chip(desc);
+
+	if (!desc) {
+		panic("No desc");
+	}
+
+	if (!chip) {
+		panic("No chip");
+	}
+
+	chained_irq_enter(chip, desc);
+
+	int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
+
+	pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
+
+	chained_irq_exit(chip, desc);
+}
+
+irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid)
 {
-	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
+	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 
 	irq_hw_number_t hwirq = readl(claim);
 
 	if (hwirq) {
-		// struct irq_desc *desc = irq_resolve_mapping(handler->priv->irqdomain, 9);
-		struct irq_desc *desc = irq_to_desc(9);
-		struct irq_chip *chip = irq_desc_get_chip(desc);
-
-		if (!desc) {
-			pr_warn("No desc");
-			return 0;
-		}
-
-		if (!chip) {
-			pr_warn("No chip");
-			return 0;
-		}
-
-		chained_irq_enter(chip, desc);
-
-		int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
-
-		chained_irq_exit(chip, desc);
+		plic_irq_claim_handle_cpu_hwirq(cpuid, hwirq);
 	}
 
 	return hwirq;
+}
+
+irq_hw_number_t plic_irq_claim_handle(void)
+{
+	return plic_irq_claim_handle_cpu(smp_processor_id());
 }
 
 #ifdef CONFIG_SMP
