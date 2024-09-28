@@ -476,6 +476,8 @@ static int __init __plic_init(struct device_node *node,
 		handler->present = true;
 		handler->hart_base = priv->regs + CONTEXT_BASE +
 			i * CONTEXT_SIZE;
+		handler->hartid = hartid;
+		handler->context_idx = i;
 		pr_info("PLIC ID: %d\n", i);
 		raw_spin_lock_init(&handler->enable_lock);
 		handler->enable_base = priv->regs + CONTEXT_ENABLE_BASE +

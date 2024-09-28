@@ -663,7 +663,14 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 	 */
 	// csr_write(CSR_SCOUNTEREN, 0x7);
 	csr_write(CSR_SCOUNTEREN, 0xFFFFFFFF);
-	pr_info("SBI STARTING CPU\n");
+
+	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
+	int hartid = handler->hartid;
+
+	int num_cpus = num_online_cpus();
+
+	// int hartid = cpuid_to_hartid_map(cpu);
+	pr_info("SBI STARTING CPU: %d, hartid: %d, context_idx: %d, num_cpus: %d\n", cpu, hartid, handler->context_idx, num_cpus);
 
 	for (int i = 0; i < cpu_hw_evt->n_events; i++) {
 		struct perf_event *event = cpu_hw_evt->events[i];
@@ -679,6 +686,27 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 		csr_set(CSR_IE, BIT(riscv_pmu_irq_num));
 		enable_percpu_irq(riscv_pmu_irq, IRQ_TYPE_NONE);
 	}
+
+	struct sbiret ret;
+	unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
+
+	int idx = 0;
+	while (1) {
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, 0, 0, 0);
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, flag, 0, 0, 0);
+		int res = csr_read(CSR_CYCLE);
+
+		if (res % num_cpus == hartid) {
+			break;
+		}
+	}
+	// for (int i = 0; i < 10; i++) {
+	// 	ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, 0, 0, 0, 0);
+	// 	ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, flag, cpu, 0, 0);
+
+	// 	// int res = csr_read(CSR_CYCLE);
+	// 	// pr_info("CSR cycle: %d\n", res);
+	// }
 
 	return 0;
 }

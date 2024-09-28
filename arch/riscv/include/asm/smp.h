@@ -66,6 +66,8 @@ struct plic_priv {
 struct plic_handler {
 	bool			present;
 	void __iomem		*hart_base;
+	unsigned long hartid;
+	int context_idx;
 	/*
 	 * Protect mask operations on the registers given that we can't
 	 * assume atomic memory operations work on them.
