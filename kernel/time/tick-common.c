@@ -98,9 +98,9 @@ static void tick_periodic(int cpu)
 	}
 
 	// should be 1 if doing this from a user process
-	update_process_times(0);
-	// update_process_times(user_mode(get_irq_regs()));
-	// profile_tick(CPU_PROFILING);
+	// update_process_times(0);
+	update_process_times(user_mode(get_irq_regs()));
+	profile_tick(CPU_PROFILING);
 }
 
 /*
