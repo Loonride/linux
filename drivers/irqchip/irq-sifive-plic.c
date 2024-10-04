@@ -32,7 +32,6 @@
  * Spec.
  */
 
-#define MAX_DEVICES			1024
 #define MAX_CONTEXTS			15872
 
 /*
@@ -64,31 +63,9 @@
 
 #define PLIC_QUIRK_EDGE_INTERRUPT	0
 
-struct plic_priv {
-	struct cpumask lmask;
-	struct irq_domain *irqdomain;
-	void __iomem *regs;
-	unsigned long plic_quirks;
-	unsigned int nr_irqs;
-	u32 *priority_reg;
-};
-
-struct plic_handler {
-	bool			present;
-	void __iomem		*hart_base;
-	/*
-	 * Protect mask operations on the registers given that we can't
-	 * assume atomic memory operations work on them.
-	 */
-	raw_spinlock_t		enable_lock;
-	void __iomem		*enable_base;
-	struct plic_priv	*priv;
-	/* To record interrupts that are enabled before suspend. */
-	u32 enable_reg[MAX_DEVICES / 32];
-};
 static int plic_parent_irq __ro_after_init;
 static bool plic_cpuhp_setup_done __ro_after_init;
-static DEFINE_PER_CPU(struct plic_handler, plic_handlers);
+DEFINE_PER_CPU(struct plic_handler, plic_handlers);
 static struct plic_priv *priv_data;
 
 static int plic_irq_set_type(struct irq_data *d, unsigned int type);
@@ -161,6 +138,8 @@ static void plic_irq_eoi(struct irq_data *d)
 }
 
 void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
+	local_irq_disable();
+
 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
 
 	// struct irq_desc *desc = irq_resolve_mapping(handler->priv->irqdomain, 9);
@@ -179,19 +158,23 @@ void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
 
 	int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
 
-	pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
+	// pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
 
 	chained_irq_exit(chip, desc);
 }
 
 irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid)
 {
+	struct beandip_info *bi;
 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 
 	irq_hw_number_t hwirq = readl(claim);
 
 	if (hwirq) {
+		bi = this_cpu_ptr(&beandip_info);
+		bi->kernel_poll_hits++;
+
 		plic_irq_claim_handle_cpu_hwirq(cpuid, hwirq);
 	}
 
@@ -419,13 +402,19 @@ static void plic_handle_irq(struct irq_desc *desc)
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 	irq_hw_number_t hwirq;
+	struct beandip_info *bi;
 
 	WARN_ON_ONCE(!handler->present);
 
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
-		// pr_info("Hardware hwirq: %d\n", hwirq);
+		pr_info("Hardware hwirq: %d\n", hwirq);
+		if (beandip_is_ready()) {
+			bi = this_cpu_ptr(&beandip_info);
+			bi->hwint_count++;
+		}
+
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))
@@ -468,7 +457,7 @@ static int __init __plic_init(struct device_node *node,
 			      struct device_node *parent,
 			      unsigned long plic_quirks)
 {
-	pr_info("PLIC INIT");
+	pr_info("PLIC INIT HERE");
 
 	int error = 0, nr_contexts, nr_handlers = 0, i;
 	u32 nr_irqs;

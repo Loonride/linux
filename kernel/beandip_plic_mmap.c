@@ -94,6 +94,11 @@ struct beandip_hit_params {
     int hwirq;
 };
 
+struct beandip_hit_cpu {
+    int cpuid;
+    int hwirq;
+};
+
 static struct cdev apic_cdev;
 static struct class *apic_class;
 
@@ -133,12 +138,12 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 	// Linux 6.4
 	// vm_flags_set(vma, VM_IO);
 	vma->vm_flags |= VM_IO;
-	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN, requested_size, vma->vm_page_prot);
+	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN + vma->vm_pgoff, requested_size, vma->vm_page_prot);
 	if (err) {
 		printk("apic_dev_kmod: apic_mmap [remap_page_range] failed!\n");
 		return -1;
 	}
-	printk("apic_dev_kmod: hopefully mmaped!\n");
+	printk("apic_dev_kmod: hopefully mmaped! Received requested offset of: %lx\n", vma->vm_pgoff);
 
 	// printk("SCOUNTEREN: %lx\n", csr_read(CSR_SCOUNTEREN));
 
@@ -177,8 +182,26 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
+static void handle_irq_other_cpu(void *info) {
+	struct beandip_info *bi;
+	struct beandip_hit_cpu *hit_info = (struct beandip_hit_cpu *)info;
+
+	bi = this_cpu_ptr(&beandip_info);
+	bi->userspace_poll_hits++;
+
+	plic_irq_claim_handle_cpu_hwirq(hit_info->cpuid, hit_info->hwirq);
+
+	kfree(hit_info);
+
+	while(plic_irq_claim_handle()) {
+		bi->kernel_loop_poll_hits++;
+		continue;
+	}
+}
+
 static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
 	struct beandip_hit_params params;
+	struct beandip_info *bi;
 
 	switch(cmd) {
 		case MY_APIC_PF_INDICATOR:
@@ -196,11 +219,31 @@ static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
                 return -EFAULT;
             }
 
-			int cpuid = riscv_hartid_to_cpuid(params.hartid);
+			int hartid = params.hartid + BEANDIP_IS_SIFIVE;
 
-			printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", params.hartid, params.hwirq, cpuid);
+			int cpuid = riscv_hartid_to_cpuid(hartid);
 
-			plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
+			int curr_cpuid = smp_processor_id();
+
+			// printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", hartid, params.hwirq, cpuid);
+
+			if (cpuid == curr_cpuid) {
+				bi = this_cpu_ptr(&beandip_info);
+				bi->userspace_poll_hits++;
+				plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
+
+				while(plic_irq_claim_handle()) {
+					bi->kernel_loop_poll_hits++;
+					continue;
+				}
+			} else {
+				struct beandip_hit_cpu *hit_info = kmalloc(sizeof(struct beandip_hit_cpu), GFP_KERNEL);
+				hit_info->cpuid = cpuid;
+				hit_info->hwirq = params.hwirq;
+
+				// do not wait for this to return (which is why we need to malloc the hit info)
+				smp_call_function_single(cpuid, handle_irq_other_cpu, (void *)hit_info, 0);
+			}
 
 			// current->user_syscall_indicator = (void __user *) arg;
 			// current->beandipped = true;

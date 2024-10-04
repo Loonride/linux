@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/cpu_pm.h>
 #include <linux/sched/clock.h>
+#include <linux/random.h>
 
 #include <asm/sbi.h>
 #include <asm/hwcap.h>
@@ -425,6 +426,8 @@ static u64 pmu_sbi_ctr_read(struct perf_event *event)
 
 static void pmu_sbi_ctr_start(struct perf_event *event, u64 ival)
 {
+	return;
+
 	struct sbiret ret;
 	struct hw_perf_event *hwc = &event->hw;
 	unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
@@ -480,7 +483,7 @@ static int pmu_sbi_get_ctrinfo(int nctr, unsigned long *mask)
 			/* The logical counter ids are not expected to be contiguous */
 			continue;
 
-		pr_info("PMU SBI Counter found: %d\n", i);
+		pr_info("PMU SBI Counter found: %d, firmware: %d, value: %d\n", i, cinfo.type == SBI_PMU_CTR_TYPE_FW, ret.value);
 
 		*mask |= BIT(i);
 
@@ -525,6 +528,8 @@ static inline void pmu_sbi_stop_hw_ctrs(struct riscv_pmu *pmu)
 static inline void pmu_sbi_start_overflow_mask(struct riscv_pmu *pmu,
 					       unsigned long ctr_ovf_mask)
 {
+	return;
+
 	int idx = 0;
 	struct cpu_hw_events *cpu_hw_evt = this_cpu_ptr(pmu->hw_events);
 	struct perf_event *event;
@@ -689,9 +694,16 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 
 	int idx = 0;
 	while (1) {
-		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, 0, 0, 0);
-		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, flag, 0, 0, 0);
+		u32 rand_int;
+    	get_random_bytes(&rand_int, sizeof(rand_int));
+
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, rand_int, 0, 0);
+		// pr_info("SBI between ecalls CPU: %d, res: %d\n", cpu, csr_read(CSR_CYCLE));
+
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, 0, 0, 0, 0);
 		int res = csr_read(CSR_CYCLE);
+
+		// pr_info("SBI after ecalls CPU: %d, res: %d\n", cpu, res);
 
 		if (res % num_cpus == hartid) {
 			break;
@@ -956,6 +968,12 @@ static int __init pmu_sbi_devinit(void)
 
 	if (sbi_spec_version < sbi_mk_version(0, 3) ||
 	    !sbi_probe_extension(SBI_EXT_PMU)) {
+		pr_info("SBI PMU does not meet desired specs");
+
+		// cpuhp_setup_state_multi(CPUHP_AP_PERF_RISCV_STARTING,
+		// 		      "perf/riscv/pmu:starting",
+		// 		      pmu_sbi_starting_cpu, pmu_sbi_dying_cpu);
+
 		return 0;
 	}
 
