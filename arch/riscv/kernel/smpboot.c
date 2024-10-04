@@ -254,9 +254,9 @@ void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 	bi->poll_count++;
 
 	hwirq = plic_irq_claim_handle();
-	if (hwirq) {
-		printk(KERN_INFO "IRQ: %ld\n", hwirq);
-	}
+	// if (hwirq) {
+	// 	printk(KERN_INFO "IRQ: %ld\n", hwirq);
+	// }
 
 	*(volatile int *)(&vol) = 9;
 }

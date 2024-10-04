@@ -9,4 +9,8 @@ scripts/config --disable RCU_TORTURE_TEST
 scripts/config --disable ATOMIC64_SELFTEST
 scripts/config --disable ASYNC_RAID6_TEST
 scripts/config --disable TEST_KSTRTOX
+scripts/config --disable PM_TEST_SUSPEND
+scripts/config --disable STMMAC_SELFTESTS 
+scripts/config --disable DMATEST
+scripts/config --disable STARFIVE_MBOX_TEST
 

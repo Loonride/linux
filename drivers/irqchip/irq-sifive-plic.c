@@ -32,7 +32,6 @@
  * Spec.
  */
 
-#define MAX_DEVICES			1024
 #define MAX_CONTEXTS			15872
 
 /*
@@ -64,31 +63,9 @@
 
 #define PLIC_QUIRK_EDGE_INTERRUPT	0
 
-struct plic_priv {
-	struct cpumask lmask;
-	struct irq_domain *irqdomain;
-	void __iomem *regs;
-	unsigned long plic_quirks;
-	unsigned int nr_irqs;
-	u32 *priority_reg;
-};
-
-struct plic_handler {
-	bool			present;
-	void __iomem		*hart_base;
-	/*
-	 * Protect mask operations on the registers given that we can't
-	 * assume atomic memory operations work on them.
-	 */
-	raw_spinlock_t		enable_lock;
-	void __iomem		*enable_base;
-	struct plic_priv	*priv;
-	/* To record interrupts that are enabled before suspend. */
-	u32 enable_reg[MAX_DEVICES / 32];
-};
 static int plic_parent_irq __ro_after_init;
 static bool plic_cpuhp_setup_done __ro_after_init;
-static DEFINE_PER_CPU(struct plic_handler, plic_handlers);
+DEFINE_PER_CPU(struct plic_handler, plic_handlers);
 static struct plic_priv *priv_data;
 
 static int plic_irq_set_type(struct irq_data *d, unsigned int type);
@@ -179,7 +156,7 @@ void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
 
 	int err = generic_handle_domain_irq(handler->priv->irqdomain, hwirq);
 
-	pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
+	// pr_info("Handled PLIC irq: %d, err code: %d, cpuid: %d, curr_cpuid: %d\n", hwirq, err, cpuid, smp_processor_id());
 
 	chained_irq_exit(chip, desc);
 }
