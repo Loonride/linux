@@ -108,6 +108,7 @@
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
+#include <asm/sbi.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/initcall.h>
@@ -1508,6 +1509,71 @@ void __weak free_initmem(void)
 	free_initmem_default(POISON_FREE_INITMEM);
 }
 
+void setup_timers(void *info) {
+    struct sbiret sret;
+	unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
+
+	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
+	int hartid = handler->hartid;
+	int cpuid = smp_processor_id();
+
+	int num_cpus = num_online_cpus();
+
+	csr_write(CSR_SCOUNTEREN, 0xFFFFFFFF);
+
+	pr_info("Setting up timer on hart: %d, cpu: %d, num_cpus: %d\n", hartid, cpuid, num_cpus);
+
+	// for (int idx = 0; idx < 10; idx++) {
+	// 	int init_val = 0;
+	// 	sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, 0, 0, 0, 0);
+	// 	pr_info("Started SBI counter: %d, sret error: %d, sret value: %d\n", idx, sret.error, sret.value);
+	// }
+
+	// INSTRET
+	int idx = 2;
+	while (1) {
+		u32 rand_int;
+		get_random_bytes(&rand_int, sizeof(rand_int));
+
+		sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, rand_int, 0, 0);
+		// pr_info("SBI between ecalls CPU: %d, res: %d\n", cpu, csr_read(CSR_CYCLE));
+
+		sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, 0, 0, 0, 0);
+
+		nop();
+
+		int res = csr_read(CSR_INSTRET);
+
+		// pr_info("read result for hartid %d, res: %d\n", hartid, res);
+		// break;
+
+		if (res % num_cpus == hartid - BEANDIP_IS_SIFIVE) {
+			pr_info("Final time for hart: %d, cpu: %d, time: %d\n", hartid, cpuid, res);
+			break;
+		}
+	}
+
+	// // hart 0 is the boot hart on this machine
+	// unsigned long hartid_normalized = (unsigned long)hartid - 1;
+	// // 64 bits - (log_2(num_cpus))
+	// unsigned long init_val = hartid_normalized << 62;
+	// sbi_set_timer(init_val);
+	// // unsigned long init_val = 0xFFFFFFFF;
+
+	// sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, init_val, init_val, 0);
+
+	// pr_info("Init time for hart: %d, cpu: %d, time: %lx\n", hartid, cpuid, init_val);
+
+	// nop();
+
+	// unsigned long res = csr_read(CSR_CYCLE);
+
+	// pr_info("Final time for hart: %d, cpu: %d, time: %lx\n", hartid, cpuid, res);
+
+	// int res = csr_read(CSR_HPMCOUNTER3);
+	// pr_info("HPMCounter CSR cycle: %d\n", res);
+}
+
 static int __ref kernel_init(void *unused)
 {
 	int ret;
@@ -1542,20 +1608,23 @@ static int __ref kernel_init(void *unused)
 
 	do_sysctl_args();
 
-	beandip_set_ready();
-	pr_info("beandip set to ready state");
-
 	unsigned int i;
 	struct irq_desc *desc;
 	int cpu;
 
-	arch_local_irq_disable();
+	// arch_local_irq_disable();
 	// for_each_online_cpu(cpu) {
 	// 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
 
 	// 	// disables plic
 	// 	plic_set_threshold(handler, 0x7);
 	// }
+
+	pr_info("SBI PMU timers initializing");
+	on_each_cpu(setup_timers, NULL, 1);
+
+	beandip_set_ready();
+	pr_info("beandip set to ready state");
 
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);

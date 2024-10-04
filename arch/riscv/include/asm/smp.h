@@ -53,11 +53,15 @@ void riscv_clear_ipi(void);
 /* Check other CPUs stop or not */
 bool smp_crash_stop_failed(void);
 
+#define MAX_DEVICES			1024
+
 struct plic_priv {
 	struct cpumask lmask;
 	struct irq_domain *irqdomain;
 	void __iomem *regs;
 	unsigned long plic_quirks;
+	unsigned int nr_irqs;
+	u32 *priority_reg;
 
 	resource_size_t phys_start;
 	resource_size_t phys_size;
@@ -75,6 +79,7 @@ struct plic_handler {
 	raw_spinlock_t		enable_lock;
 	void __iomem		*enable_base;
 	struct plic_priv	*priv;
+	u32 enable_reg[MAX_DEVICES / 32];
 };
 
 DECLARE_PER_CPU(struct plic_handler, plic_handlers);
@@ -140,12 +145,26 @@ static inline bool cpu_has_hotplug(unsigned int cpu)
 
 struct beandip_info {
 	u32 poll_count;
+	u32 hwint_count;
+	u32 kernel_poll_hits;
+	u32 kernel_loop_poll_hits;
+	u32 userspace_poll_hits;
 };
 
 DECLARE_PER_CPU(struct beandip_info, beandip_info);
 
 u32 beandip_get_poll_count(unsigned int cpu_id);
 
+u32 beandip_get_hwint_count(unsigned int cpu_id);
+
+u32 beandip_get_kernel_poll_hits(unsigned int cpu_id);
+
+u32 beandip_get_kernel_loop_poll_hits(unsigned int cpu_id);
+
+u32 beandip_get_userspace_poll_hits(unsigned int cpu_id);
+
 struct irq_domain *get_intc_domain(void);
+
+#define BEANDIP_IS_SIFIVE 1
 
 #endif /* _ASM_RISCV_SMP_H */
