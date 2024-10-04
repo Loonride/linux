@@ -89,7 +89,7 @@ int ecrnx_amt_init(void)
 	ndev->wireless_handlers = &ecrnx_wext_private_handler;
 #endif
 	/* clear the mac address */
-	memset(ndev->dev_addr, 0, ETH_ALEN);
+	memset((void *)ndev->dev_addr, 0, ETH_ALEN);
 
 	if (register_netdev(ndev) != 0)
         goto err_dev;
