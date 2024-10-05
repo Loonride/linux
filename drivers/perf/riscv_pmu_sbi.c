@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/cpu_pm.h>
 #include <linux/sched/clock.h>
+#include <linux/random.h>
 
 #include <asm/errata_list.h>
 #include <asm/sbi.h>
@@ -692,9 +693,16 @@ static int pmu_sbi_starting_cpu(unsigned int cpu, struct hlist_node *node)
 
 	int idx = 0;
 	while (1) {
-		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, 0, 0, 0);
-		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, flag, 0, 0, 0);
+		u32 rand_int;
+    	get_random_bytes(&rand_int, sizeof(rand_int));
+
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, rand_int, 0, 0);
+		// pr_info("SBI between ecalls CPU: %d, res: %d\n", cpu, csr_read(CSR_CYCLE));
+
+		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, 0, 0, 0, 0);
 		int res = csr_read(CSR_CYCLE);
+
+		// pr_info("SBI after ecalls CPU: %d, res: %d\n", cpu, res);
 
 		if (res % num_cpus == hartid) {
 			break;
