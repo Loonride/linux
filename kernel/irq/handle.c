@@ -136,7 +136,7 @@ void __irq_wake_thread(struct irq_desc *desc, struct irqaction *action)
 	wake_up_process(action->thread);
 }
 
-irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc)
+__attribute__((annotate("nohook"))) irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc)
 {
 	irqreturn_t retval = IRQ_NONE;
 	unsigned int irq = desc->irq_data.irq;

@@ -169,6 +169,7 @@ irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid)
 	irq_hw_number_t hwirq = readl(claim);
 
 	if (hwirq) {
+		local_irq_disable();
 		plic_irq_claim_handle_cpu_hwirq(cpuid, hwirq);
 	}
 

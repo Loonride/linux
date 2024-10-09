@@ -1594,6 +1594,9 @@ static int __ref kernel_init(void *unused)
 	pr_info("SBI PMU timers initializing");
 	on_each_cpu(setup_timers, NULL, 1);
 
+	beandip_set_ready();
+	pr_info("beandip set to ready state");
+
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)

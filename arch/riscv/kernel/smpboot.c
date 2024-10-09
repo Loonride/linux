@@ -186,9 +186,6 @@ void __init smp_cpus_done(unsigned int max_cpus)
 		bi->hwint_count = 0;
     }
 
-	beandip_set_ready();
-	pr_info("beandip set to ready state");
-
 	// this is where it is safe to now start writing per-cpu data
 
 	// for_each_irq_desc(i, desc) {
@@ -265,10 +262,10 @@ void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 	bi = this_cpu_ptr(&beandip_info);
 	bi->poll_count++;
 
-	// if (arch_irqs_disabled()) {
-	// 	return;
-	// }
-	// hwirq = plic_irq_claim_handle();
+	if (arch_irqs_disabled()) {
+		return;
+	}
+	hwirq = plic_irq_claim_handle();
 
 	// if (hwirq) {
 	// 	printk(KERN_INFO "IRQ: %ld\n", hwirq);
