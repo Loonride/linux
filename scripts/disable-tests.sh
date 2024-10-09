@@ -13,4 +13,5 @@ scripts/config --disable PM_TEST_SUSPEND
 scripts/config --disable STMMAC_SELFTESTS 
 scripts/config --disable DMATEST
 scripts/config --disable STARFIVE_MBOX_TEST
+ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- LLVM=1 BEANDIP=1 make olddefconfig
 

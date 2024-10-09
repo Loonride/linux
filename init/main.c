@@ -108,6 +108,7 @@
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
+#include <asm/sbi.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/initcall.h>
@@ -1508,6 +1509,42 @@ void __weak free_initmem(void)
 	free_initmem_default(POISON_FREE_INITMEM);
 }
 
+void setup_timers(void *info) {
+    struct sbiret sret;
+	unsigned long flag = SBI_PMU_START_FLAG_SET_INIT_VALUE;
+
+	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
+	int hartid = handler->hartid;
+	int cpuid = smp_processor_id();
+
+	int num_cpus = num_online_cpus() + 1;
+
+	pr_info("Setting up timer on hart: %d, cpu: %d, num_cpus: %d\n", hartid, cpuid, num_cpus);
+
+	int idx = 0;
+	while (1) {
+		u32 rand_int;
+    	get_random_bytes(&rand_int, sizeof(rand_int));
+
+		sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, idx, 1, flag, rand_int, 0, 0);
+		// pr_info("SBI between ecalls CPU: %d, res: %d\n", cpu, csr_read(CSR_CYCLE));
+
+		sret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_STOP, idx, 1, 0, 0, 0, 0);
+
+		nop();
+
+		int res = csr_read(CSR_CYCLE);
+
+		// pr_info("read result for hartid %d, res: %d\n", hartid, res);
+		// break;
+
+		if (res % num_cpus == hartid) {
+			pr_info("Final time for hart: %d, cpu: %d, time: %d\n", hartid, cpuid, res);
+			break;
+		}
+	}
+}
+
 static int __ref kernel_init(void *unused)
 {
 	int ret;
@@ -1542,20 +1579,20 @@ static int __ref kernel_init(void *unused)
 
 	do_sysctl_args();
 
-	beandip_set_ready();
-	pr_info("beandip set to ready state");
-
 	unsigned int i;
 	struct irq_desc *desc;
 	int cpu;
 
-	arch_local_irq_disable();
+	// arch_local_irq_disable();
 	// for_each_online_cpu(cpu) {
 	// 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpu);
 
 	// 	// disables plic
 	// 	plic_set_threshold(handler, 0x7);
 	// }
+
+	pr_info("SBI PMU timers initializing");
+	on_each_cpu(setup_timers, NULL, 1);
 
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);

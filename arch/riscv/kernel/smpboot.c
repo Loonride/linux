@@ -50,6 +50,14 @@ u32 beandip_get_poll_count(unsigned int cpu_id)
 }
 EXPORT_SYMBOL(beandip_get_poll_count);
 
+u32 beandip_get_hwint_count(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->hwint_count;
+}
+EXPORT_SYMBOL(beandip_get_hwint_count);
+
 // END BEANDIP
 
 void __init smp_prepare_boot_cpu(void)
@@ -175,7 +183,11 @@ void __init smp_cpus_done(unsigned int max_cpus)
 		pr_info("beandip init CPU: %d\n", cpu);
 		bi = per_cpu_ptr(&beandip_info, cpu);
 		bi->poll_count = 0;
+		bi->hwint_count = 0;
     }
+
+	beandip_set_ready();
+	pr_info("beandip set to ready state");
 
 	// this is where it is safe to now start writing per-cpu data
 
@@ -253,7 +265,11 @@ void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 	bi = this_cpu_ptr(&beandip_info);
 	bi->poll_count++;
 
-	hwirq = plic_irq_claim_handle();
+	// if (arch_irqs_disabled()) {
+	// 	return;
+	// }
+	// hwirq = plic_irq_claim_handle();
+
 	// if (hwirq) {
 	// 	printk(KERN_INFO "IRQ: %ld\n", hwirq);
 	// }

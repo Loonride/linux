@@ -396,13 +396,19 @@ static void plic_handle_irq(struct irq_desc *desc)
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 	irq_hw_number_t hwirq;
+	struct beandip_info *bi;
 
 	WARN_ON_ONCE(!handler->present);
 
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
-		// pr_info("Hardware hwirq: %d\n", hwirq);
+		pr_info("Hardware hwirq: %d\n", hwirq);
+		if (beandip_is_ready()) {
+			bi = this_cpu_ptr(&beandip_info);
+			bi->hwint_count++;
+		}
+
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))
@@ -445,7 +451,7 @@ static int __init __plic_init(struct device_node *node,
 			      struct device_node *parent,
 			      unsigned long plic_quirks)
 {
-	pr_info("PLIC INIT");
+	pr_info("PLIC INIT HERE");
 
 	int error = 0, nr_contexts, nr_handlers = 0, i;
 	u32 nr_irqs;

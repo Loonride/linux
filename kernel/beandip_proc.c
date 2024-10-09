@@ -7,8 +7,9 @@ static int beandip_proc_show(struct seq_file *m, void *v) {
   int cpu;
 
 	for_each_online_cpu(cpu) {
-  u32 poll_count = beandip_get_poll_count(cpu);
-    seq_printf(m, "CPU %d info: %d\n", cpu, poll_count);
+    u32 poll_count = beandip_get_poll_count(cpu);
+    u32 hwint_count = beandip_get_hwint_count(cpu);
+    seq_printf(m, "CPU %d polls: %d, hwints: %d\n", cpu, poll_count, hwint_count);
   }
   // seq_printf(m, "Hello proc!\n");
   return 0;
