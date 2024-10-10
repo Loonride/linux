@@ -483,7 +483,7 @@ static int pmu_sbi_get_ctrinfo(int nctr, unsigned long *mask)
 			/* The logical counter ids are not expected to be contiguous */
 			continue;
 
-		pr_info("PMU SBI Counter found: %d\n", i);
+		pr_info("PMU SBI Counter found: %d, firmware: %d, value: %d\n", i, cinfo.type == SBI_PMU_CTR_TYPE_FW, ret.value);
 
 		*mask |= BIT(i);
 

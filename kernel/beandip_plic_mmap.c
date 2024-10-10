@@ -196,9 +196,11 @@ static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
                 return -EFAULT;
             }
 
-			int cpuid = riscv_hartid_to_cpuid(params.hartid);
+			int hartid = params.hartid + BEANDIP_IS_SIFIVE;
 
-			printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", params.hartid, params.hwirq, cpuid);
+			int cpuid = riscv_hartid_to_cpuid(hartid);
+
+			printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", hartid, params.hwirq, cpuid);
 
 			plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
 

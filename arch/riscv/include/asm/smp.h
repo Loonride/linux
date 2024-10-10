@@ -156,4 +156,6 @@ u32 beandip_get_hwint_count(unsigned int cpu_id);
 
 struct irq_domain *get_intc_domain(void);
 
+#define BEANDIP_IS_SIFIVE 1
+
 #endif /* _ASM_RISCV_SMP_H */
