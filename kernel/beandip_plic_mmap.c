@@ -138,12 +138,12 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 	// Linux 6.4
 	// vm_flags_set(vma, VM_IO);
 	vma->vm_flags |= VM_IO;
-	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN, requested_size, vma->vm_page_prot);
+	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN + vma->vm_pgoff, requested_size, vma->vm_page_prot);
 	if (err) {
 		printk("apic_dev_kmod: apic_mmap [remap_page_range] failed!\n");
 		return -1;
 	}
-	printk("apic_dev_kmod: hopefully mmaped!\n");
+	printk("apic_dev_kmod: hopefully mmaped! Received requested offset of: %lx\n", vma->vm_pgoff);
 
 	// printk("SCOUNTEREN: %lx\n", csr_read(CSR_SCOUNTEREN));
 
