@@ -183,7 +183,11 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 }
 
 static void handle_irq_other_cpu(void *info) {
+	struct beandip_info *bi;
 	struct beandip_hit_cpu *hit_info = (struct beandip_hit_cpu *)info;
+
+	bi = this_cpu_ptr(&beandip_info);
+	bi->userspace_poll_hits++;
 
 	plic_irq_claim_handle_cpu_hwirq(hit_info->cpuid, hit_info->hwirq);
 
@@ -192,6 +196,7 @@ static void handle_irq_other_cpu(void *info) {
 
 static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
 	struct beandip_hit_params params;
+	struct beandip_info *bi;
 
 	switch(cmd) {
 		case MY_APIC_PF_INDICATOR:
@@ -218,6 +223,8 @@ static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
 			// printk(KERN_INFO "Received poll hit ioctl with hartid: %d, hwirq: %d, cpuid: %d\n", hartid, params.hwirq, cpuid);
 
 			if (cpuid == curr_cpuid) {
+				bi = this_cpu_ptr(&beandip_info);
+				bi->userspace_poll_hits++;
 				plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
 			} else {
 				struct beandip_hit_cpu *hit_info = kmalloc(sizeof(struct beandip_hit_cpu), GFP_KERNEL);

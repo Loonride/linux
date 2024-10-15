@@ -165,12 +165,16 @@ void plic_irq_claim_handle_cpu_hwirq(int cpuid, irq_hw_number_t hwirq) {
 
 irq_hw_number_t plic_irq_claim_handle_cpu(int cpuid)
 {
+	struct beandip_info *bi;
 	struct plic_handler *handler = per_cpu_ptr(&plic_handlers, cpuid);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
 
 	irq_hw_number_t hwirq = readl(claim);
 
 	if (hwirq) {
+		bi = this_cpu_ptr(&beandip_info);
+		bi->kernel_poll_hits++;
+
 		plic_irq_claim_handle_cpu_hwirq(cpuid, hwirq);
 	}
 

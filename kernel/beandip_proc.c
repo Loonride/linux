@@ -9,7 +9,9 @@ static int beandip_proc_show(struct seq_file *m, void *v) {
 	for_each_online_cpu(cpu) {
     u32 poll_count = beandip_get_poll_count(cpu);
     u32 hwint_count = beandip_get_hwint_count(cpu);
-    seq_printf(m, "CPU %d polls: %d, hwints: %d\n", cpu, poll_count, hwint_count);
+    u32 kernel_poll_hits = beandip_get_kernel_poll_hits(cpu);
+    u32 userspace_poll_hits = beandip_get_userspace_poll_hits(cpu);
+    seq_printf(m, "cpu: %d, polls: %d, hwints: %d, khits: %d, uhits: %d\n", cpu, poll_count, hwint_count, kernel_poll_hits, userspace_poll_hits);
   }
   // seq_printf(m, "Hello proc!\n");
   return 0;
