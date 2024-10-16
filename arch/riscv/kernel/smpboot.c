@@ -155,6 +155,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
 		pr_info("beandip baseline init CPU: %d\n", cpu);
 		bi = per_cpu_ptr(&beandip_info, cpu);
 		bi->hwint_count = 0;
+		bi->hwint_loop_count = 0;
     }
 }
 
@@ -200,3 +201,11 @@ u32 beandip_get_hwint_count(unsigned int cpu_id)
 	return bi->hwint_count;
 }
 EXPORT_SYMBOL(beandip_get_hwint_count);
+
+u32 beandip_get_hwint_loop_count(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->hwint_loop_count;
+}
+EXPORT_SYMBOL(beandip_get_hwint_loop_count);

@@ -374,10 +374,12 @@ static void plic_handle_irq(struct irq_desc *desc)
 	WARN_ON_ONCE(!handler->present);
 
 	chained_irq_enter(chip, desc);
+	
+	bi = this_cpu_ptr(&beandip_info);
+	bi->hwint_count++;
 
 	while ((hwirq = readl(claim))) {
-		bi = this_cpu_ptr(&beandip_info);
-		bi->hwint_count++;
+		bi->hwint_loop_count++;
 
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
