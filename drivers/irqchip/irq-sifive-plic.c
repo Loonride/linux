@@ -365,6 +365,7 @@ static const struct irq_domain_ops plic_irqdomain_ops = {
  */
 static void plic_handle_irq(struct irq_desc *desc)
 {
+	struct beandip_info *bi;
 	struct plic_handler *handler = this_cpu_ptr(&plic_handlers);
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	void __iomem *claim = handler->hart_base + CONTEXT_CLAIM;
@@ -375,6 +376,9 @@ static void plic_handle_irq(struct irq_desc *desc)
 	chained_irq_enter(chip, desc);
 
 	while ((hwirq = readl(claim))) {
+		bi = this_cpu_ptr(&beandip_info);
+		bi->hwint_count++;
+
 		int err = generic_handle_domain_irq(handler->priv->irqdomain,
 						    hwirq);
 		if (unlikely(err))

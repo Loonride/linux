@@ -104,4 +104,12 @@ static inline bool cpu_has_hotplug(unsigned int cpu)
 }
 #endif
 
+struct beandip_info {
+	u32 hwint_count;
+};
+
+DECLARE_PER_CPU(struct beandip_info, beandip_info);
+
+u32 beandip_get_hwint_count(unsigned int cpu_id);
+
 #endif /* _ASM_RISCV_SMP_H */

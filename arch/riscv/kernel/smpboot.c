@@ -148,6 +148,14 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 
 void __init smp_cpus_done(unsigned int max_cpus)
 {
+	int cpu;
+	struct beandip_info *bi;
+
+	for_each_online_cpu(cpu) {
+		pr_info("beandip baseline init CPU: %d\n", cpu);
+		bi = per_cpu_ptr(&beandip_info, cpu);
+		bi->hwint_count = 0;
+    }
 }
 
 /*
@@ -182,3 +190,13 @@ asmlinkage __visible void smp_callin(void)
 	local_irq_enable();
 	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 }
+
+DEFINE_PER_CPU(struct beandip_info, beandip_info);
+
+u32 beandip_get_hwint_count(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->hwint_count;
+}
+EXPORT_SYMBOL(beandip_get_hwint_count);
