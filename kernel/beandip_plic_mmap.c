@@ -192,6 +192,11 @@ static void handle_irq_other_cpu(void *info) {
 	plic_irq_claim_handle_cpu_hwirq(hit_info->cpuid, hit_info->hwirq);
 
 	kfree(hit_info);
+
+	while(plic_irq_claim_handle()) {
+		bi->kernel_loop_poll_hits++;
+		continue;
+	}
 }
 
 static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
@@ -226,6 +231,11 @@ static long apic_ioctl(struct file * fp, unsigned int cmd, unsigned long arg) {
 				bi = this_cpu_ptr(&beandip_info);
 				bi->userspace_poll_hits++;
 				plic_irq_claim_handle_cpu_hwirq(cpuid, params.hwirq);
+
+				while(plic_irq_claim_handle()) {
+					bi->kernel_loop_poll_hits++;
+					continue;
+				}
 			} else {
 				struct beandip_hit_cpu *hit_info = kmalloc(sizeof(struct beandip_hit_cpu), GFP_KERNEL);
 				hit_info->cpuid = cpuid;

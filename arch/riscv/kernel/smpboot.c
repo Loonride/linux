@@ -66,6 +66,14 @@ u32 beandip_get_kernel_poll_hits(unsigned int cpu_id)
 }
 EXPORT_SYMBOL(beandip_get_kernel_poll_hits);
 
+u32 beandip_get_kernel_loop_poll_hits(unsigned int cpu_id)
+{
+	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
+
+	return bi->kernel_loop_poll_hits;
+}
+EXPORT_SYMBOL(beandip_get_kernel_loop_poll_hits);
+
 u32 beandip_get_userspace_poll_hits(unsigned int cpu_id)
 {
 	struct beandip_info *bi = per_cpu_ptr(&beandip_info, cpu_id);
@@ -201,6 +209,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
 		bi->poll_count = 0;
 		bi->hwint_count = 0;
 		bi->kernel_poll_hits = 0;
+		bi->kernel_loop_poll_hits = 0;
 		bi->userspace_poll_hits = 0;
     }
 
