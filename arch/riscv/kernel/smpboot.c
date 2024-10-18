@@ -275,19 +275,14 @@ asmlinkage __visible void smp_callin(void)
 	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 }
 
-static volatile int vol = 0;
-
 void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 {
-	struct beandip_info *bi;
+	// struct beandip_info *bi;
 	unsigned int hwirq;
 
 	if (!beandip_is_ready()) {
 		return;
 	}
-
-	bi = this_cpu_ptr(&beandip_info);
-	bi->poll_count++;
 
 	if (arch_irqs_disabled()) {
 		return;
@@ -295,10 +290,9 @@ void beandip_static_guarded_poll(int poll_site_id, uint64_t target_interval)
 	hwirq = plic_irq_claim_handle();
 
 	// if (hwirq) {
-	// 	printk(KERN_INFO "IRQ: %ld\n", hwirq);
+	// 	bi = this_cpu_ptr(&beandip_info);
+	// 	bi->poll_count++;
 	// }
-
-	*(volatile int *)(&vol) = 9;
 }
 
 void beandip_static_accum_thread_local_latency(uint64_t latency,
@@ -386,7 +380,6 @@ bool beandip_static_preheader_callback_i64(int poll_site_id, int64_t first,
 // does not have enough latency to ever cause a poll to fire when latency starts from zero each time
 uint32_t beandip_static_enter_function(void)
 {
-	*(volatile int *)(&vol) = 5;
 	return 0;
 }
 
@@ -396,5 +389,4 @@ uint32_t beandip_static_enter_function(void)
 // can then be retrieved by beandip_static_enter_function to pick up where things were left off
 void beandip_static_exit_function(uint32_t init_latency, uint32_t final_latency)
 {
-	*(volatile int *)(&vol) = 7;
 }
