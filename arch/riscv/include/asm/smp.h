@@ -165,6 +165,6 @@ u32 beandip_get_userspace_poll_hits(unsigned int cpu_id);
 
 struct irq_domain *get_intc_domain(void);
 
-#define BEANDIP_IS_SIFIVE 1
+#define BEANDIP_IS_SIFIVE 0
 
 #endif /* _ASM_RISCV_SMP_H */

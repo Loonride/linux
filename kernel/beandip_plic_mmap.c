@@ -83,6 +83,215 @@ uint64_t APIC_BASE_PFN = 0;
 // #define SYS_ICC_SRE_EL1			sys_reg(3, 0, 12, 12, 5)
 // #define SYS_ICC_HPPIR0_EL1		sys_reg(3, 0, 12, 8, 2)
 
+/*
+ * Page Table Debugging Stuff
+ */
+
+#define SV39_NEXT_TABLE_MASK  0x003FFFFFFFFFFC00ULL
+#define SV39_NEXT_TABLE_SHIFT 2
+
+#define SV39_NUM_LEVELS 3
+
+#define SV39_V (1ULL<<0)
+#define SV39_R (1ULL<<1)
+#define SV39_W (1ULL<<2)
+#define SV39_X (1ULL<<3)
+#define SV39_U (1ULL<<4)
+#define SV39_G (1ULL<<5)
+#define SV39_A (1ULL<<6)
+#define SV39_D (1ULL<<7)
+
+#define ERROR(...) pr_err(__VA_ARGS__)
+#define INFO(...) printk(__VA_ARGS__)
+
+int
+walk_sv39_table(
+        uint64_t vaddr,
+        uint64_t table_paddr,
+        int level
+        )
+{
+    INFO("Level(%d): table-paddr=0x%lx table-vaddr=0x%lx\n", 
+            level,
+            table_paddr,
+            __va(table_paddr));
+
+    if(level < 0) {
+        ERROR("Reached Page Table Level: (%d)!\n",
+                level);
+        return -1;
+    }
+
+    uint64_t *table = (uint64_t*)(uint64_t)__va(table_paddr);
+   
+    size_t index = (vaddr >> ((level * 9) + 12)) & 0x1FFULL;
+    printk("Index=0x%lx, translated-vaddr=0x%lx\n", index, vaddr);
+
+    uint64_t entry = table[index];
+
+    if((entry & SV39_V) == 0) {
+        INFO("[0x%lx] INVALID\n",
+                (void*)entry);
+        return -1;
+    }
+
+    if(entry & SV39_R || entry & SV39_X) {
+        INFO("[0x%lx] paddr=0x%lx %s%s%s%s%s%s%s LEAF\n",
+                (void*)entry,
+                (entry & SV39_NEXT_TABLE_MASK)<<SV39_NEXT_TABLE_SHIFT,
+                (entry & SV39_R) ? "[READ]" : "",
+                (entry & SV39_W) ? "[WRITE]" : "",
+                (entry & SV39_X) ? "[EXEC]" : "",
+                (entry & SV39_U) ? "[USER]" : "",
+                (entry & SV39_G) ? "[GLOBAL]" : "",
+                (entry & SV39_A) ? "[ACCESSED]" : "",
+                (entry & SV39_D) ? "[DIRTY]" : ""
+                );
+        return 0;
+    } else { 
+        INFO("[0x%lx] %s%s%s%s%s%s%s TABLE\n",
+                (void*)entry,
+                (entry & SV39_R) ? "[READ]" : "",
+                (entry & SV39_W) ? "[WRITE]" : "",
+                (entry & SV39_X) ? "[EXEC]" : "",
+                (entry & SV39_U) ? "[USER]" : "",
+                (entry & SV39_G) ? "[GLOBAL]" : "",
+                (entry & SV39_A) ? "[ACCESSED]" : "",
+                (entry & SV39_D) ? "[DIRTY]" : ""
+                );
+        return walk_sv39_table(
+                vaddr,
+                (entry & SV39_NEXT_TABLE_MASK)<<SV39_NEXT_TABLE_SHIFT,
+                level-1);
+    }
+}
+
+static int
+sv39_walk_assert_mapping(
+        uint64_t vaddr,
+        uint64_t paddr,
+        uint64_t table_paddr,
+        int level
+        )
+{
+    if(level < 0) {
+        ERROR("sv39_walk_assert_mapping: Reached Page Table Level: (%d)!\n",
+                level);
+        return -1;
+    }
+
+    uint64_t *table = (uint64_t*)(uint64_t)__va(table_paddr);
+   
+    size_t index = (vaddr >> ((level * 9) + 12)) & 0x1FFULL;
+
+    uint64_t entry = table[index];
+
+    if((entry & SV39_V) == 0) {
+        ERROR("sv39_walk_assert_mapping: [0x%lx] INVALID\n",
+                (void*)entry);
+        return -1;
+    }
+ 
+    if(entry & SV39_R || entry & SV39_X) {
+        uint64_t leaf_addr = (entry & SV39_NEXT_TABLE_MASK) << SV39_NEXT_TABLE_SHIFT;
+        uint64_t offset_mask = (1ULL << (level * 9) + 12) - 1;
+        if(leaf_addr != (paddr & ~offset_mask)) {
+            ERROR("sv39_walk_assert_mapping: FAILED Kernel Mapped (0x%lx -> 0x%lx) instead of (0x%lx -> 0x%lx)\n",
+                    vaddr, leaf_addr, vaddr, paddr & ~offset_mask);
+            return -1;
+        }
+        return 0;
+    } else { 
+        return sv39_walk_assert_mapping(
+                vaddr,
+                paddr,
+                (entry & SV39_NEXT_TABLE_MASK)<<SV39_NEXT_TABLE_SHIFT,
+                level-1);
+    }
+}
+
+static int
+assert_mapping(
+        uint64_t vaddr,
+        uint64_t paddr)
+{
+    uint64_t root_paddr = (csr_read(CSR_SATP) & 0xFFFFFFFFFF) << 12;
+
+    return sv39_walk_assert_mapping(
+            vaddr,
+            paddr,
+            root_paddr,
+            2
+            );
+}
+
+static int
+milkv_patch_sv39_table(
+        uint64_t vaddr,
+        uint64_t table_paddr,
+        int level
+        )
+{
+    if(level < 0) {
+        ERROR("Reached Page Table Level: (%d)!\n",
+                level);
+        return -1;
+    }
+
+    uint64_t *table = (uint64_t*)(uint64_t)__va(table_paddr);
+   
+    size_t index = (vaddr >> ((level * 9) + 12)) & 0x1FFULL;
+
+    uint64_t entry = table[index];
+
+    if((entry & SV39_V) == 0) {
+        ERROR("[0x%lx] INVALID\n",
+                (void*)entry);
+        return -1;
+    }
+    
+    if(level == 0) {
+        //table[index] = table[index] & 0x003FFFFFFFFFFFFFULL;
+        table[index] &= ~(0xFull << 60); // clear insane linux reserved bit
+        table[index] |= (0b1001ull << 60); // set pmbt to I/O
+        entry = table[index];
+        asm volatile (
+                "sfence.vma"
+                ::: "memory");
+    }
+    if(entry & SV39_R || entry & SV39_X) {
+        return 0;
+    } else { 
+        return milkv_patch_sv39_table(
+                vaddr,
+                (entry & SV39_NEXT_TABLE_MASK)<<SV39_NEXT_TABLE_SHIFT,
+                level-1);
+    }
+}
+
+int
+milkv_patch_sv39_range(
+        uint64_t vbase,
+        uint64_t pbase,
+        uint64_t size,
+        uint64_t table_paddr)
+{
+    int res;
+    for(uint64_t offset = 0; offset < size; offset += 0x1000) {
+        assert_mapping(vbase + offset, pbase + offset);
+        res = milkv_patch_sv39_table(
+                vbase + offset,
+                table_paddr,
+                2);
+        if(res) {
+            ERROR("milkv_patch_sv39_range: milkv_patch_sv39_table failed (vaddr=0x%lx)\n",
+                    vbase + offset);
+            return res;
+        }
+    }
+    return 0;
+}
+
 /* 
 =====================
 Device Driver Stuff
@@ -138,12 +347,55 @@ static int apic_mmap(struct file *filp, struct vm_area_struct *vma)
 	// Linux 6.4
 	// vm_flags_set(vma, VM_IO);
 	vma->vm_flags |= VM_IO;
-	err = io_remap_pfn_range(vma, vma->vm_start, APIC_BASE_PFN + vma->vm_pgoff, requested_size, vma->vm_page_prot);
+    printk("pgoff=0x%lx\n", vma->vm_pgoff);
+    uint64_t plic_base_pfn = APIC_BASE_PFN + vma->vm_pgoff;
+    uint64_t plic_base = plic_base_pfn << 12;
+	err = io_remap_pfn_range(vma, vma->vm_start, plic_base_pfn, requested_size, vma->vm_page_prot);
 	if (err) {
 		printk("apic_dev_kmod: apic_mmap [remap_page_range] failed!\n");
 		return -1;
 	}
-	printk("apic_dev_kmod: hopefully mmaped! Received requested offset of: %lx\n", vma->vm_pgoff);
+	printk("apic_dev_kmod: hopefully mmaped! base: %lx\n", plic_base);
+
+    uint64_t mmap_vaddr = vma->vm_start;
+    uint64_t root_paddr = (csr_read(CSR_SATP) & 0xFFFFFFFFFF) << 12;
+
+    printk("mmap_vaddr=0x%lx, root_paddr=0x%lx\n",
+            mmap_vaddr,
+            root_paddr);
+
+    err = milkv_patch_sv39_range(
+            mmap_vaddr,
+            plic_base,
+            requested_size,
+            root_paddr
+            );
+
+    if(err) {
+        pr_err("milkv_patch_sv39_range(vaddr=0x%lx, paddr=0x%lx) -> %d\n",
+                mmap_vaddr,
+                root_paddr,
+                err);
+    }
+
+    printk("Hopefully patched page tables correctly\n");
+
+    printk("Enabled Bitmap\n");
+
+    // void __iomem *kmap = ioremap(plic_base, 0x400000);
+    // if(kmap == NULL) {
+    //     pr_err("Failed to ioremap the PLIC!\n");
+    // } else {
+
+    //     for(int i = 0; i < 0x20; i++) {
+    //         uint64_t context = 65;
+    //         uint64_t offset = 0x2000 + (context * 0x80) + (i * 4);
+    //         uint32_t __iomem *reg = kmap + offset;
+    //         assert_mapping(kmap + offset, plic_base + offset);
+    //         uint32_t value = readl(reg);
+    //         printk("offset=0x%x, [0x%08x]\n", offset, value);
+    //     }
+    // }
 
 	// printk("SCOUNTEREN: %lx\n", csr_read(CSR_SCOUNTEREN));
 
